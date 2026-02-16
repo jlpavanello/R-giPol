@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Registre d'émargement</title>
+
+<!-- PWA Meta Tags -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Émargement">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<meta name="description" content="Registre d'émargement digital — gestion des machines, signatures et présences">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --dark: #0f172a; --dark2: #1e293b; --med: #cbd5e1; --light: #f1f5f9;
+    --accent: #3b82f6; --accent-light: #60a5fa; --accent-dark: #2563eb;
+    --green: #10b981; --green-light: #34d399; --green-dark: #059669;
+    --red: #ef4444; --red-light: #f87171;
+    --orange: #f59e0b; --orange-dark: #d97706;
+    --purple: #8b5cf6;
+    --surface: #ffffff; --surface2: #f8fafc;
+    --border: #e2e8f0; --border-light: #f1f5f9;
+    --text: #0f172a; --text2: #475569; --text3: #94a3b8;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+    --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+    --shadow-xl: 0 20px 50px -12px rgba(0,0,0,0.15);
+    --radius: 14px; --radius-sm: 10px; --radius-xs: 8px;
+    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8edf5 50%, #f0f0f8 100%);
+    color: var(--text); min-height: 100vh; padding-bottom: 90px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%);
+    color: white; padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+    box-shadow: 0 4px 20px rgba(15,23,42,0.25);
+  }
+  header h1 {
+    font-size: 14px; font-weight: 800; letter-spacing: 0.8px;
+    background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header-btn {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    color: white; padding: 8px 14px; border-radius: var(--radius-xs);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all var(--transition); backdrop-filter: blur(8px);
+  }
+  .header-btn:hover { background: rgba(255,255,255,0.18); }
+  .header-btn:active { background: rgba(255,255,255,0.25); transform: scale(0.97); }
+  .header-btn svg { width: 16px; height: 16px; }
+
+  /* ===== SECTIONS ===== */
+  .section {
+    background: var(--surface); margin: 12px 12px;
+    border-radius: var(--radius); padding: 16px;
+    box-shadow: var(--shadow); border: 1px solid var(--border-light);
+    transition: box-shadow var(--transition);
+  }
+  .section:hover { box-shadow: var(--shadow-lg); }
+  .section h2 {
+    font-size: 11px; color: var(--text3); margin-bottom: 12px;
+    text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section h2 svg { width: 14px; height: 14px; opacity: 0.5; }
+
+  /* ===== FORM FIELDS ===== */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .info-grid.full { grid-template-columns: 1fr; }
+  .info-field label {
+    display: block; font-size: 10px; color: var(--text3);
+    margin-bottom: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .info-field input {
+    width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius-xs);
+    padding: 10px 12px; font-size: 14px; background: var(--surface2);
+    font-family: inherit; transition: all var(--transition); color: var(--text);
+  }
+  .info-field input:focus {
+    outline: none; border-color: var(--accent); background: white;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+  }
+  .info-field input::placeholder { color: var(--text3); }
+
+  /* ===== PERIOD TABS ===== */
+  .period-tabs {
+    display: flex; margin: 12px; background: var(--surface);
+    border-radius: var(--radius); overflow: hidden;
+    box-shadow: var(--shadow); border: 1px solid var(--border-light);
+    padding: 4px;
+  }
+  .period-tab {
+    flex: 1; padding: 12px; text-align: center; font-weight: 700;
+    font-size: 13px; cursor: pointer; border: none;
+    background: transparent; color: var(--text3);
+    border-radius: var(--radius-sm); transition: all var(--transition);
+    position: relative;
+  }
+  .period-tab.active {
+    background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%);
+    color: white; box-shadow: 0 2px 8px rgba(15,23,42,0.25);
+  }
+  .period-tab:not(.active):hover { background: var(--surface2); color: var(--text2); }
+  .period-tab .count {
+    display: block; font-size: 10px; font-weight: 500;
+    margin-top: 2px; opacity: 0.8;
+  }
+
+  /* ===== EMPLOYEE LIST ===== */
+  .employees-list { margin: 12px; }
+  .emp-card {
+    background: var(--surface); border-radius: var(--radius);
+    margin-bottom: 8px; padding: 14px 16px;
+    box-shadow: var(--shadow-sm); border: 1px solid var(--border-light);
+    display: flex; align-items: center; gap: 12px;
+    transition: all var(--transition);
+    animation: slideUp 0.3s ease-out both;
+  }
+  .emp-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+  .emp-card.signed-card { border-left: 3px solid var(--green); }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .emp-num {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%);
+    color: white; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(15,23,42,0.2);
+  }
+  .emp-info { flex: 1; min-width: 0; }
+  .emp-name {
+    font-size: 15px; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .emp-detail { font-size: 11px; color: var(--text3); margin-top: 2px; font-weight: 500; }
+  .emp-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600; padding: 3px 8px;
+    border-radius: 6px; letter-spacing: 0.2px;
+  }
+  .badge-machine { background: #dbeafe; color: #1e40af; }
+  .badge-cat { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+  .badge-cat-portatif { background: #dcfce7; color: #166534; }
+  .badge-cat-atelier { background: #e0e7ff; color: #3730a3; }
+  .badge-cat-transport { background: #fef3c7; color: #92400e; }
+  .badge-acc { background: #fef3c7; color: #92400e; }
+  .badge svg { width: 11px; height: 11px; }
+  .emp-sign-area { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+  .emp-time { font-size: 10px; color: var(--green-dark); font-weight: 700; }
+  .sign-btn {
+    width: 76px; height: 40px; border-radius: var(--radius-xs);
+    border: 2px dashed var(--border); background: var(--surface2);
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; font-size: 12px; color: var(--text3);
+    overflow: hidden; transition: all var(--transition); font-weight: 600;
+    font-family: inherit;
+  }
+  .sign-btn:hover { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
+  .sign-btn:active { transform: scale(0.95); }
+  .sign-btn.signed {
+    border: 2px solid var(--green); background: #ecfdf5;
+    box-shadow: 0 2px 4px rgba(16,185,129,0.15);
+  }
+  .sign-btn.signed img { width: 100%; height: 100%; object-fit: contain; }
+
+  /* ===== VISA ===== */
+  .visa-sign-btn {
+    width: 100%; height: 60px; border-radius: var(--radius-xs);
+    border: 2px dashed var(--border); background: var(--surface2);
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; font-size: 13px; color: var(--text3);
+    overflow: hidden; transition: all var(--transition); font-weight: 600;
+    font-family: inherit;
+  }
+  .visa-sign-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .visa-sign-btn.signed { border: 2px solid var(--green); background: #ecfdf5; }
+  .visa-sign-btn.signed img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .visa-sign-btn.needs-resign { border: 2px solid #f59e0b; background: #fffbeb; color: #b45309; font-weight: 700; font-size: 0.85rem; animation: pulse-warn 1.5s ease-in-out infinite; }
+  @keyframes pulse-warn { 0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); } 50% { box-shadow: 0 0 0 8px rgba(245,158,11,0); } }
+
+  /* ===== BOTTOM BAR ===== */
+  .bottom-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(255,255,255,0.85); backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 12px 16px; box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+    display: flex; gap: 10px; z-index: 10;
+    border-top: 1px solid rgba(226,232,240,0.5);
+  }
+  .btn-main {
+    flex: 1; padding: 14px; color: white; border: none;
+    border-radius: var(--radius-sm); font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+    transition: all var(--transition);
+  }
+  .btn-main:hover { box-shadow: 0 6px 20px rgba(37,99,235,0.4); transform: translateY(-1px); }
+  .btn-main:active { transform: translateY(0); filter: brightness(0.95); }
+  .btn-secondary {
+    padding: 14px 18px; background: var(--surface2); color: var(--text2);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: all var(--transition);
+  }
+  .btn-secondary:hover { background: #f1f5f9; }
+  .btn-danger { background: #fef2f2; color: var(--red); border-color: #fecaca; }
+  .btn-danger:hover { background: #fee2e2; }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(15,23,42,0.6); backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 100; align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-overlay.active { display: flex; animation: fadeIn 0.2s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--surface); border-radius: 20px;
+    width: 100%; max-width: 420px; overflow: hidden;
+    box-shadow: var(--shadow-xl);
+    animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: scale(0.92) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-header {
+    padding: 18px 20px;
+    background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%);
+    color: white; text-align: center;
+  }
+  .modal-header h3 { font-size: 16px; font-weight: 700; }
+  .modal-header p { font-size: 12px; opacity: 0.7; margin-top: 3px; font-weight: 500; }
+  .modal-body { padding: 16px; background: var(--surface2); }
+  .modal-body label {
+    display: block; font-size: 11px; font-weight: 700; color: var(--text2);
+    margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .modal-body select, .modal-body input[type="number"] {
+    width: 100%; padding: 12px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-xs); font-size: 14px; background: white;
+    margin-bottom: 12px; font-family: inherit; transition: all var(--transition);
+  }
+  .modal-body select { appearance: auto; }
+  .modal-body select:focus, .modal-body input:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+  }
+  .recap-badge {
+    display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+    background: #dbeafe; border-radius: var(--radius-sm); margin-bottom: 10px;
+    font-size: 13px; font-weight: 600; color: #1e40af;
+  }
+  .recap-badge svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .recap-badge.acc { background: #fef3c7; color: #92400e; }
+  .sig-canvas {
+    width: 100%; height: 150px; background: white; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); touch-action: none; cursor: crosshair;
+    transition: border-color var(--transition);
+  }
+  .sig-canvas:active { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 8px; padding: 14px 16px; background: white; }
+  .modal-btn {
+    flex: 1; padding: 12px; border: none; border-radius: var(--radius-xs);
+    font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: all var(--transition);
+  }
+  .modal-btn.cancel { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+  .modal-btn.cancel:hover { background: #f1f5f9; }
+  .modal-btn.clear { background: #fef3c7; color: #92400e; }
+  .modal-btn.clear:hover { background: #fde68a; }
+  .modal-btn.confirm {
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+    color: white; box-shadow: 0 2px 8px rgba(16,185,129,0.3);
+  }
+  .modal-btn.confirm:hover { box-shadow: 0 4px 12px rgba(16,185,129,0.4); }
+
+  /* Quantité accessoires */
+  .qty-selector {
+    display: flex; align-items: center; gap: 0; margin-bottom: 12px;
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    overflow: hidden; background: white;
+  }
+  .qty-selector button {
+    width: 56px; height: 52px; border: none; font-size: 24px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all var(--transition); font-family: inherit;
+  }
+  .qty-selector .qty-minus { background: #fef2f2; color: var(--red); }
+  .qty-selector .qty-minus:hover { background: #fee2e2; }
+  .qty-selector .qty-plus { background: #ecfdf5; color: var(--green); }
+  .qty-selector .qty-plus:hover { background: #d1fae5; }
+  .qty-selector .qty-value {
+    flex: 1; text-align: center; font-size: 26px; font-weight: 700; color: var(--dark);
+    border: none; outline: none; background: transparent;
+    -moz-appearance: textfield; padding: 0; margin: 0; min-width: 0;
+    font-family: inherit;
+  }
+  .qty-selector .qty-value::-webkit-outer-spin-button,
+  .qty-selector .qty-value::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  .qty-selector .qty-value:focus { background: #eff6ff; }
+  #machineListArea { display: none; }
+
+  /* Étapes du modal */
+  .step-indicator {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 14px; background: var(--surface2); font-size: 11px; color: var(--text3);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .step-dot {
+    width: 26px; height: 26px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
+    background: var(--border); color: var(--text3);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .step-dot.active {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    color: white; box-shadow: 0 2px 8px rgba(59,130,246,0.3); transform: scale(1.1);
+  }
+  .step-dot.done {
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+    color: white; box-shadow: 0 2px 6px rgba(16,185,129,0.25);
+  }
+  .step-line { width: 24px; height: 2px; background: var(--border); transition: all 0.3s ease; border-radius: 1px; }
+  .step-line.done { background: var(--green); }
+  .btn-next-step {
+    width: 100%; padding: 13px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    color: white; border: none; border-radius: var(--radius-xs);
+    font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 6px;
+    font-family: inherit; transition: all var(--transition);
+    box-shadow: 0 2px 8px rgba(59,130,246,0.25);
+  }
+  .btn-next-step:hover { box-shadow: 0 4px 12px rgba(59,130,246,0.35); }
+  .btn-next-step:active { filter: brightness(0.95); }
+  .btn-next-step:disabled { background: var(--border); cursor: not-allowed; box-shadow: none; }
+  #sigCanvasArea { display: none; }
+  .acc-label-info {
+    background: #eff6ff; border-radius: var(--radius-xs); padding: 12px 14px;
+    font-size: 12px; color: #1e40af; margin-bottom: 10px; line-height: 1.5; font-weight: 500;
+  }
+  /* Alerte écart accessoires */
+  .alert-diff {
+    background: #fef2f2; border: 2px solid var(--red-light); border-radius: var(--radius-sm);
+    padding: 14px; margin-top: 10px; display: none;
+  }
+  .alert-diff.visible { display: block; animation: shake 0.4s ease-out; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-4px); }
+    40%, 80% { transform: translateX(4px); }
+  }
+  .alert-diff-header {
+    display: flex; align-items: center; gap: 8px; font-size: 13px;
+    font-weight: 700; color: var(--red); margin-bottom: 8px;
+  }
+  .alert-diff-header svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .alert-diff-text { font-size: 12px; color: #991b1b; margin-bottom: 10px; line-height: 1.5; }
+  .alert-diff textarea {
+    width: 100%; min-height: 60px; border: 1.5px solid #fca5a5; border-radius: var(--radius-xs);
+    padding: 12px; font-size: 13px; font-family: inherit; resize: vertical;
+    background: white; transition: all var(--transition);
+  }
+  .alert-diff textarea:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+  .alert-diff textarea::placeholder { color: #d4a0a0; }
+  .badge-warning { background: #fef2f2; color: var(--red); }
+
+  /* Multi-machines */
+  .machine-list { margin: 8px 0; }
+  .machine-list-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; background: #f0f9ff; border-left: 3px solid #3b82f6;
+    margin: 4px 0; border-radius: 8px; animation: slideUp 0.2s ease-out;
+  }
+  .machine-list-item .mli-info { flex: 1; }
+  .machine-list-item .mli-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .machine-list-item .mli-detail { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .machine-list-item .mli-remove {
+    background: #fee2e2; color: #dc2626; border: none; width: 28px; height: 28px;
+    border-radius: 6px; cursor: pointer; font-size: 16px; display: flex;
+    align-items: center; justify-content: center; transition: all var(--transition);
+  }
+  .machine-list-item .mli-remove:hover { background: #fca5a5; }
+  .btn-add-another {
+    width: 100%; padding: 11px; background: #dbeafe; color: #1e40af; border: 2px dashed #93c5fd;
+    border-radius: var(--radius-xs); font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: all var(--transition); margin-top: 6px;
+  }
+  .btn-add-another:hover { background: #bfdbfe; border-color: #60a5fa; }
+  .soir-machine-card {
+    background: white; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 12px; margin: 8px 0;
+  }
+  .soir-machine-card .smc-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    font-size: 13px; font-weight: 600; color: #1e40af;
+  }
+  .soir-machine-card .smc-header svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .soir-machine-card .smc-acc-info { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+  .soir-machine-card .smc-alert {
+    background: #fef2f2; border: 1.5px solid #fca5a5; border-radius: 6px;
+    padding: 8px; margin-top: 6px; font-size: 11px; color: #991b1b;
+  }
+  .soir-machine-card .smc-alert textarea {
+    width: 100%; min-height: 40px; border: 1px solid #fca5a5; border-radius: 4px;
+    padding: 6px; font-size: 11px; font-family: inherit; resize: vertical;
+    margin-top: 4px; background: white;
+  }
+  .soir-machine-card .smc-alert textarea:focus { outline: none; border-color: var(--red); }
+
+  /* Verrouillage */
+  .locked-banner {
+    display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 1px solid #86efac; border-radius: var(--radius);
+    margin: 12px; font-size: 12px; color: #166534; font-weight: 600;
+    animation: slideUp 0.3s ease-out;
+  }
+  .locked-banner svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .emp-card.locked { opacity: 0.85; }
+  .emp-card.locked .sign-btn { cursor: default; border-style: solid; }
+  .sign-btn.locked-btn { background: #ecfdf5; border-color: var(--green); cursor: default; }
+  .sign-btn.locked-btn:active { transform: none; }
+
+  /* Visa matin / soir */
+  .visa-row { display: flex; gap: 12px; }
+  .visa-block { flex: 1; }
+  .visa-block label {
+    display: block; font-size: 10px; font-weight: 700; margin-bottom: 6px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .visa-block label.matin-label { color: #92400e; }
+  .visa-block label.soir-label { color: #1e40af; }
+  .visa-sign-btn.mini { height: 50px; font-size: 11px; }
+  .visa-signer-select {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-xs); font-size: 13px; background: white;
+    margin-bottom: 10px; appearance: auto; font-family: inherit;
+    transition: all var(--transition);
+  }
+  .visa-signer-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+  .visa-signer-info {
+    font-size: 10px; color: var(--text3); margin-bottom: 6px;
+    font-style: italic; font-weight: 500;
+  }
+  .visa-signed-by {
+    font-size: 10px; color: var(--green-dark); font-weight: 600; margin-top: 4px; text-align: center;
+  }
+  .cnum.resp-bg { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+
+  /* ===== CONFIG ===== */
+  .config-overlay {
+    display: none; position: fixed; inset: 0;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8edf5 100%);
+    z-index: 50; overflow-y: auto; padding-bottom: 90px;
+  }
+  .config-overlay.active { display: block; animation: fadeIn 0.2s ease; }
+  .config-header {
+    background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+    color: white; padding: 16px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 51;
+    box-shadow: 0 4px 20px rgba(245,158,11,0.25);
+  }
+  .config-header h2 { font-size: 16px; font-weight: 800; }
+  .config-section-title {
+    font-size: 12px; font-weight: 700; color: var(--text2);
+    text-transform: uppercase; padding: 14px 16px 6px; letter-spacing: 0.8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .config-section-title svg { width: 16px; height: 16px; opacity: 0.5; }
+  .config-card {
+    background: white; margin: 6px 12px; border-radius: var(--radius-sm); padding: 12px 14px;
+    box-shadow: var(--shadow-sm); border: 1px solid var(--border-light);
+    display: flex; align-items: center; gap: 12px;
+    transition: all var(--transition);
+  }
+  .config-card:hover { box-shadow: var(--shadow); }
+  .config-card .cnum {
+    width: 30px; height: 30px; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; font-size: 12px;
+    font-weight: 700; color: white; flex-shrink: 0;
+  }
+  .cnum.emp-bg { background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%); }
+  .cnum.mach-bg { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%); }
+  .config-card .fields { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .config-card input {
+    width: 100%; border: 1.5px solid var(--border); border-radius: 6px;
+    padding: 8px 12px; font-size: 13px; font-family: inherit;
+    transition: all var(--transition);
+  }
+  .config-card input:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(245,158,11,0.1); }
+  .config-card input.name-input { font-weight: 600; }
+  .config-card input.sub-input { font-size: 11px; color: var(--text2); }
+  .config-card select.cat-select {
+    width: 100%; border: 1.5px solid var(--border); border-radius: 6px;
+    padding: 7px 10px; font-size: 11px; font-family: inherit; appearance: auto;
+    background: white; color: var(--text2); transition: all var(--transition);
+  }
+  .config-card select.cat-select:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(245,158,11,0.1); }
+  .config-add-row { text-align: center; margin: 10px 12px; display: flex; gap: 8px; justify-content: center; }
+  .config-add-row button {
+    border: none; padding: 10px 18px; border-radius: var(--radius-xs);
+    font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: all var(--transition);
+  }
+  .config-add-btn {
+    background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+    color: white; box-shadow: 0 2px 6px rgba(245,158,11,0.25);
+  }
+  .config-add-btn:hover { box-shadow: 0 4px 12px rgba(245,158,11,0.35); }
+  .config-rem-btn { background: #fef2f2; color: var(--red); }
+  .config-rem-btn:hover { background: #fee2e2; }
+  .config-info {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border: 1px solid #fed7aa; border-radius: var(--radius);
+    margin: 12px; padding: 14px; font-size: 12px; color: #9a3412; line-height: 1.6; font-weight: 500;
+  }
+  .config-bottom {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(255,255,255,0.85); backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 12px 16px; box-shadow: 0 -4px 20px rgba(0,0,0,0.08); z-index: 51;
+    border-top: 1px solid rgba(226,232,240,0.5);
+  }
+  .btn-config-save {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+    color: white; border: none; border-radius: var(--radius-sm);
+    font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+    box-shadow: 0 4px 12px rgba(245,158,11,0.3);
+    transition: all var(--transition);
+  }
+  .btn-config-save:hover { box-shadow: 0 6px 20px rgba(245,158,11,0.4); }
+
+  /* Sélection des présents */
+  .presence-overlay {
+    display: none; position: fixed; inset: 0;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8edf5 100%);
+    z-index: 60; overflow-y: auto; padding-bottom: 90px;
+  }
+  .presence-overlay.active { display: block; animation: fadeIn 0.2s ease; }
+  .presence-header {
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+    color: white; padding: 16px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 61;
+    box-shadow: 0 4px 20px rgba(16,185,129,0.25);
+  }
+  .presence-header h2 { font-size: 16px; font-weight: 800; }
+  .presence-info {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 1px solid #86efac; border-radius: var(--radius);
+    margin: 12px; padding: 14px; font-size: 12px; color: #166534; line-height: 1.6; font-weight: 500;
+  }
+  .presence-count {
+    text-align: center; margin: 10px 12px; font-size: 13px; font-weight: 700; color: var(--dark);
+  }
+  .presence-count span { color: var(--green); }
+  .presence-card {
+    background: white; margin: 4px 12px; border-radius: var(--radius-sm); padding: 14px 16px;
+    box-shadow: var(--shadow-sm); border: 1px solid var(--border-light);
+    display: flex; align-items: center; gap: 14px;
+    cursor: pointer; transition: all var(--transition);
+  }
+  .presence-card:hover { box-shadow: var(--shadow); }
+  .presence-card:active { background: #ecfdf5; }
+  .presence-card.selected {
+    border-left: 3px solid var(--green); background: #ecfdf5;
+    box-shadow: 0 2px 8px rgba(16,185,129,0.1);
+  }
+  .presence-check {
+    width: 28px; height: 28px; border-radius: 8px; border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    font-size: 16px; color: white; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .presence-card.selected .presence-check {
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+    border-color: var(--green); transform: scale(1.05);
+    box-shadow: 0 2px 6px rgba(16,185,129,0.3);
+  }
+  .presence-card .p-info { flex: 1; }
+  .presence-card .p-name { font-size: 14px; font-weight: 600; }
+  .presence-card .p-mat { font-size: 11px; color: var(--text3); font-weight: 500; }
+  .presence-actions { display: flex; gap: 8px; margin: 12px; }
+  .presence-actions button {
+    flex: 1; padding: 11px; border: none; border-radius: var(--radius-xs);
+    font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: all var(--transition);
+  }
+  .presence-actions .btn-all { background: #dbeafe; color: #1e40af; }
+  .presence-actions .btn-all:hover { background: #bfdbfe; }
+  .presence-actions .btn-none { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+  .presence-actions .btn-none:hover { background: #f1f5f9; }
+  .presence-bottom {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(255,255,255,0.85); backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 12px 16px; box-shadow: 0 -4px 20px rgba(0,0,0,0.08); z-index: 61;
+    border-top: 1px solid rgba(226,232,240,0.5);
+  }
+  .btn-presence-save {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+    color: white; border: none; border-radius: var(--radius-sm);
+    font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+    box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+    transition: all var(--transition);
+  }
+  .btn-presence-save:hover { box-shadow: 0 6px 20px rgba(16,185,129,0.4); }
+  .btn-presence-save:disabled { background: var(--border); cursor: not-allowed; box-shadow: none; }
+  .btn-edit-presence {
+    background: #dbeafe; border: none; color: #1e40af; padding: 7px 14px;
+    border-radius: var(--radius-xs); font-size: 11px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; gap: 5px; font-family: inherit;
+    transition: all var(--transition);
+  }
+  .btn-edit-presence:hover { background: #bfdbfe; }
+  .btn-edit-presence svg { width: 14px; height: 14px; }
+  .presence-badge {
+    display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 1px solid #86efac; border-radius: var(--radius-xs);
+    font-size: 11px; font-weight: 600; color: #166534; margin: 0 12px 6px;
+  }
+
+  /* Page number badge */
+  .page-number-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(59,130,246,0.05) 100%);
+    border: 1px solid rgba(59,130,246,0.2); border-radius: var(--radius-xs);
+    padding: 6px 12px; margin: 12px 12px 0; font-size: 12px;
+    font-weight: 700; color: var(--accent-dark);
+  }
+  .page-number-badge svg { width: 14px; height: 14px; opacity: 0.6; }
+
+  /* Bouton sélection présents (état vide) */
+  .select-presence-prompt {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    margin: 20px 12px; padding: 24px; text-align: center;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 2px dashed #86efac; border-radius: var(--radius);
+  }
+  .select-presence-prompt p { font-size: 13px; color: #166534; font-weight: 500; line-height: 1.5; }
+  .select-presence-prompt button {
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+    color: white; border: none; padding: 12px 24px; border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+    box-shadow: 0 4px 12px rgba(16,185,129,0.3); transition: all var(--transition);
+  }
+  .select-presence-prompt button:hover { box-shadow: 0 6px 20px rgba(16,185,129,0.4); transform: translateY(-1px); }
+
+  .empty-state { text-align: center; padding: 40px 24px; color: var(--text3); }
+  .empty-state p { font-size: 14px; margin-bottom: 16px; font-weight: 500; }
+  .empty-state button {
+    background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+    color: white; border: none; padding: 13px 28px;
+    border-radius: var(--radius-sm); font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 4px 12px rgba(245,158,11,0.3);
+    transition: all var(--transition);
+  }
+  .empty-state button:hover { box-shadow: 0 6px 20px rgba(245,158,11,0.4); transform: translateY(-1px); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>REGISTRE D'ÉMARGEMENT</h1>
+  <button class="header-btn" onclick="openConfig()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    Config
+  </button>
+</header>
+
+<div class="section">
+  <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Informations du jour</h2>
+  <div class="info-grid">
+    <div class="info-field"><label>Entreprise</label><input type="text" id="entreprise" placeholder="Nom"></div>
+    <div class="info-field"><label>Date</label><input type="date" id="dateJour"></div>
+    <div class="info-field"><label>Réf. chantier / site</label><input type="text" id="refChantier" placeholder="Référence"></div>
+    <div class="info-field"><label>Responsable</label><input type="text" id="responsable" placeholder="Nom"></div>
+  </div>
+  <div class="info-grid full" style="margin-top:10px;">
+    <div class="info-field"><label>Adresse du chantier</label><input type="text" id="adresseChantier" placeholder="Adresse complète"></div>
+  </div>
+</div>
+
+<div class="page-number-badge" id="pageNumberBadge">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+  <span id="pageNumberText">Page n° —</span>
+</div>
+
+<div class="period-tabs">
+  <button class="period-tab active" onclick="switchPeriod('matin')">SORTIE DES MACHINES<span class="count" id="countMatin">0/0</span></button>
+  <button class="period-tab" onclick="switchPeriod('soir')">RETOUR DES MACHINES<span class="count" id="countSoir">0/0</span></button>
+</div>
+
+<div id="presenceBadgeArea" style="display:none;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin:10px 12px 0;">
+    <div class="presence-badge" id="presenceBadge"></div>
+    <button class="btn-edit-presence" onclick="openPresenceSelector()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      Modifier
+    </button>
+  </div>
+</div>
+<div id="employeesList" class="employees-list"></div>
+
+<div id="lockedBanner" class="locked-banner" style="display:none;">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+  <span id="lockedText"></span>
+</div>
+
+<div class="section">
+  <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Visa du responsable</h2>
+  <div class="visa-signer-info">Qui signe le registre ?</div>
+  <select class="visa-signer-select" id="visaSignerSelect" onchange="onVisaSignerChange()">
+    <option value="">— Choisir le signataire —</option>
+  </select>
+  <div class="visa-row">
+    <div class="visa-block">
+      <label class="matin-label">Sortie des machines</label>
+      <div class="visa-sign-btn mini" id="visaMatinBtn" onclick="openVisaSign('visaMatin')">Signer</div>
+      <div class="visa-signed-by" id="visaMatinSignedBy" style="display:none;"></div>
+    </div>
+    <div class="visa-block">
+      <label class="soir-label">Retour des machines</label>
+      <div class="visa-sign-btn mini" id="visaSoirBtn" onclick="openVisaSign('visaSoir')">Signer</div>
+      <div class="visa-signed-by" id="visaSoirSignedBy" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <button class="btn-secondary btn-danger" onclick="resetSignatures()">Effacer</button>
+  <button class="btn-main" onclick="generatePDF()">Générer le PDF</button>
+</div>
+
+<!-- MODAL SIGNATURE -->
+<div class="modal-overlay" id="sigModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Signature</h3>
+      <p id="modalSubtitle"></p>
+    </div>
+    <div id="stepIndicator" class="step-indicator" style="display:none;">
+      <div class="step-dot active" id="step1dot">1</div>
+      <div class="step-line" id="step1line"></div>
+      <div class="step-dot" id="step2dot">2</div>
+      <div class="step-line" id="step2line"></div>
+      <div class="step-dot" id="step3dot">3</div>
+    </div>
+    <div class="modal-body">
+      <!-- ÉTAPE 1 : Sélection machine (matin) -->
+      <div id="machSelectArea" style="display:none;">
+        <label>Catégorie de matériel</label>
+        <select id="catSelect" onchange="onCatChange()">
+          <option value="">— Choisir une catégorie —</option>
+        </select>
+        <div id="machSelectSub" style="display:none;">
+          <label style="margin-top:6px;">Machine / Outil</label>
+          <select id="machineSelect" onchange="onMachineChange()"><option value="">— Choisir —</option></select>
+        </div>
+        <label style="margin-top:6px;">Accessoires</label>
+        <div class="qty-selector">
+          <button class="qty-minus" onclick="changeQty(-1)">−</button>
+          <input type="number" class="qty-value" id="qtyValue" value="0" min="0" inputmode="numeric" pattern="[0-9]*" onchange="onQtyInput(this)" oninput="onQtyInput(this)">
+          <button class="qty-plus" onclick="changeQty(+1)">+</button>
+        </div>
+        <button class="btn-next-step" id="btnAddMachine" onclick="addMachineToList()" disabled>Ajouter cette machine</button>
+      </div>
+      <!-- ÉTAPE 2 : Récap machines ajoutées (matin) -->
+      <div id="machineListArea" style="display:none;">
+        <label>Machines sélectionnées</label>
+        <div id="machineListContent" class="machine-list"></div>
+        <button class="btn-add-another" onclick="goToAddAnotherMachine()">+ Ajouter une autre machine</button>
+        <button class="btn-next-step" id="btnGoToSign" onclick="goToSignStep()" style="margin-top:8px;">Passer à la signature →</button>
+      </div>
+      <!-- Zone retours SOIR (multi-machines) -->
+      <div id="soirReturnArea" style="display:none;"></div>
+      <div id="sigCanvasArea">
+        <canvas class="sig-canvas" id="sigCanvas"></canvas>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal()">Annuler</button>
+      <button class="modal-btn clear" id="btnClear" onclick="clearCanvas()">Effacer</button>
+      <button class="modal-btn confirm" onclick="confirmSignature()">Valider</button>
+    </div>
+  </div>
+</div>
+
+<!-- SÉLECTION DES PRÉSENTS -->
+<div class="presence-overlay" id="presencePanel">
+  <div class="presence-header">
+    <h2>Présents du jour</h2>
+    <button class="header-btn" onclick="closePresenceSelector()" style="background:rgba(255,255,255,0.2);">Fermer</button>
+  </div>
+  <div class="presence-info">Cochez les salariés de service aujourd'hui. Seuls les salariés sélectionnés pourront signer et prendre du matériel.</div>
+  <div class="presence-actions">
+    <button class="btn-all" onclick="selectAllPresence()">Tous</button>
+    <button class="btn-none" onclick="selectNonePresence()">Aucun</button>
+  </div>
+  <div class="presence-count" id="presenceCount">0 sélectionnés</div>
+  <div id="presenceList"></div>
+  <div style="height:90px;"></div>
+  <div class="presence-bottom"><button class="btn-presence-save" id="btnPresenceSave" onclick="savePresence()">Valider la sélection</button></div>
+</div>
+
+<!-- CONFIG -->
+<div class="config-overlay" id="configPanel">
+  <div class="config-header">
+    <h2>Configuration</h2>
+    <button class="header-btn" onclick="closeConfig()" style="background:rgba(255,255,255,0.2);">Fermer</button>
+  </div>
+  <div class="config-info">Configurez votre équipe, vos responsables et vos machines. Ces données sont sauvegardées et pré-remplies chaque jour.</div>
+  <div class="config-section-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+    Responsables / Signataires
+  </div>
+  <div class="config-card">
+    <div class="cnum resp-bg"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="width:16px;height:16px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+    <div class="fields">
+      <input class="name-input" type="text" placeholder="Nom du Chef d'unité" id="configChefUnite">
+      <input class="sub-input" type="text" placeholder="Matricule (optionnel)" id="configChefMat">
+    </div>
+  </div>
+  <div class="config-card">
+    <div class="cnum resp-bg"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="width:16px;height:16px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+    <div class="fields">
+      <select class="cat-select" id="configArmurierSelect" onchange="onArmurierSelectChange()" style="font-weight:600; font-size:13px;">
+        <option value="">— Choisir l'Armurier parmi les salariés —</option>
+      </select>
+      <div id="configArmurierInfo" style="font-size:11px; color:#94a3b8; font-weight:500; padding:2px 4px;"></div>
+    </div>
+  </div>
+  <div class="config-section-title" style="margin-top:6px;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Salariés
+  </div>
+  <div id="configEmpList"></div>
+  <div class="config-add-row">
+    <button class="config-add-btn" onclick="addItem('emp')">+ Salarié</button>
+    <button class="config-rem-btn" onclick="removeItem('emp')">- Dernier</button>
+  </div>
+  <div class="config-section-title" style="margin-top:6px;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+    Catégories de matériel
+  </div>
+  <div class="config-info" style="background:linear-gradient(135deg,#eff6ff,#dbeafe); border-color:#93c5fd; color:#1e40af;">
+    Créez vos catégories ici. Elles apparaîtront dans le menu déroulant lors de la signature et dans la config des machines.
+  </div>
+  <div id="configCatList"></div>
+  <div class="config-add-row">
+    <button class="config-add-btn" onclick="addCategory()">+ Catégorie</button>
+    <button class="config-rem-btn" onclick="removeCategory()">- Dernière</button>
+  </div>
+  <div class="config-section-title" style="margin-top:6px;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01"/><path d="M17 12h.01"/><path d="M7 12h.01"/></svg>
+    Machines / Matériel
+  </div>
+  <div id="configMachList"></div>
+  <div class="config-add-row">
+    <button class="config-add-btn" onclick="addItem('mach')">+ Machine</button>
+    <button class="config-rem-btn" onclick="removeItem('mach')">- Dernière</button>
+  </div>
+  <div class="config-section-title" style="margin-top:16px; color: var(--accent);">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Transfert de configuration
+  </div>
+  <div style="margin:6px 12px; padding:14px; background:linear-gradient(135deg,#eff6ff,#dbeafe); border:1px solid #93c5fd; border-radius:14px;">
+    <p style="font-size:12px; color:#1e40af; margin-bottom:10px; line-height:1.5;">
+      <strong>Exporter</strong> votre configuration (salariés, machines, catégories, responsables, infos chantier) pour la transférer sur un autre appareil.
+    </p>
+    <div style="display:flex; gap:8px;">
+      <button onclick="exportConfig()" style="flex:1; padding:12px; background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color:white; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:0 4px 12px rgba(59,130,246,0.3); display:flex; align-items:center; justify-content:center; gap:6px;">
+        📤 Exporter
+      </button>
+      <button onclick="document.getElementById('importFileInput').click()" style="flex:1; padding:12px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:white; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:0 4px 12px rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; gap:6px;">
+        📥 Importer
+      </button>
+    </div>
+    <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importConfig(event)">
+  </div>
+  <div class="config-section-title" style="margin-top:16px; color: var(--red);">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    Zone de remise à zéro
+  </div>
+  <div style="margin:6px 12px; padding:14px; background:#fef2f2; border:1px solid #fecaca; border-radius:14px;">
+    <p style="font-size:12px; color:#991b1b; margin-bottom:10px; line-height:1.5;">
+      Utilisez ce bouton uniquement lorsque le registre du jour est <strong>finalisé</strong> (PDF généré).
+      Cela efface toutes les signatures, les visas, la sélection des présents et remet le compteur de page à zéro.
+    </p>
+    <button onclick="fullReset()" style="width:100%; padding:12px; background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color:white; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:0 4px 12px rgba(239,68,68,0.3);">
+      Remise à zéro complète
+    </button>
+  </div>
+  <div style="height:90px;"></div>
+  <div class="config-bottom"><button class="btn-config-save" onclick="saveConfig()">Enregistrer</button></div>
+</div>
+
+<script>
+let currentPeriod = 'matin', currentSignTarget = null, visaMatin = null, visaSoir = null, accQty = 0;
+let selectedMachines = []; // [{machineIdx, acc}] — machines en cours de sélection dans le modal matin
+let team = [], machines = [], dayData = [];
+let responsables = { chef: {nom:'',matricule:''}, armurier: {nom:'',matricule:''} };
+let visaMatinSigner = null, visaSoirSigner = null;
+let lockedMatinPresents = [];
+let lockedSoirPresents = [];
+let presentToday = [];
+let tempPresenceSelection = [];
+let pageNumber = 1;
+let categories = [
+  {id:'portatif', nom:'Outil portatif', emoji:'🔧'},
+  {id:'atelier', nom:'Machine d\'atelier', emoji:'⚙️'},
+  {id:'transport', nom:'Machine de transport', emoji:'🚛'}
+];
+
+// ===== INIT =====
+function init() {
+  document.getElementById('dateJour').value = todayStr();
+  loadTeam(); loadMachines(); loadCategories(); loadResponsables(); loadDayData(); loadInfoFields();
+  loadPageNumber();
+  populateVisaSignerSelect();
+  if (team.length === 0) {
+    for (let i = 0; i < 10; i++) { team.push({nom:'',matricule:'',telephone:'',asvp:false}); machines.push({nom:'',ref:'',cat:''}); }
+    saveTeam(); saveMachines(); setTimeout(() => openConfig(), 300);
+  }
+  syncDayData(); renderEmployees(); updateCounts(); updatePresenceBadge(); updatePageNumberDisplay(); updateSoirTabState(); updateVisaButtonState();
+  ['entreprise','dateJour','refChantier','responsable','adresseChantier'].forEach(id =>
+    document.getElementById(id).addEventListener('input', saveInfoFields));
+  document.getElementById('dateJour').addEventListener('change', updatePageNumberDisplay);
+  // Ouvrir automatiquement le sélecteur de présents si aucun n'est sélectionné et qu'il y a des salariés
+  if(presentToday.length===0 && team.some(t=>t.nom)) {
+    setTimeout(() => openPresenceSelector(), 500);
+  }
+}
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function nowTime() { const d=new Date(); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); }
+
+// ===== STORAGE =====
+function loadTeam() { try { const r=localStorage.getItem('reg_team'); if(r) team=JSON.parse(r); } catch(e){} }
+function saveTeam() { try { localStorage.setItem('reg_team', JSON.stringify(team)); } catch(e){} }
+function loadMachines() { try { const r=localStorage.getItem('reg_machines'); if(r) { machines=JSON.parse(r); machines.forEach(m=>{ if(m.cat===undefined) m.cat=''; }); } } catch(e){} }
+function saveMachines() { try { localStorage.setItem('reg_machines', JSON.stringify(machines)); } catch(e){} }
+function loadDayData() {
+  try {
+    const r=localStorage.getItem('reg_day');
+    if(r){ const p=JSON.parse(r); if(p.date===todayStr()){ dayData=p.data;
+      visaMatin=p.visaMatin||p.visa||null; visaSoir=p.visaSoir||null;
+      visaMatinSigner=p.visaMatinSigner||null; visaSoirSigner=p.visaSoirSigner||null;
+      presentToday=p.presentToday||[];
+      lockedMatinPresents=p.lockedMatinPresents||[];
+      lockedSoirPresents=p.lockedSoirPresents||[];
+      if(visaMatin){ const b=document.getElementById('visaMatinBtn'); b.innerHTML=`<img src="${visaMatin}" alt="v">`; b.classList.add('signed');
+        if(visaMatinSigner){ const info=document.getElementById('visaMatinSignedBy'); info.textContent=visaMatinSigner.label+' — '+visaMatinSigner.nom; info.style.display='block'; }
+      }
+      if(visaSoir){ const b=document.getElementById('visaSoirBtn'); b.innerHTML=`<img src="${visaSoir}" alt="v">`; b.classList.add('signed');
+        if(visaSoirSigner){ const info=document.getElementById('visaSoirSignedBy'); info.textContent=visaSoirSigner.label+' — '+visaSoirSigner.nom; info.style.display='block'; }
+      }
+      return; }}
+  } catch(e){} dayData=[]; visaMatin=null; visaSoir=null; visaMatinSigner=null; visaSoirSigner=null; presentToday=[]; lockedMatinPresents=[]; lockedSoirPresents=[];
+}
+function syncDayData() {
+  while(dayData.length<team.length) dayData.push({matin:{signature:null,heure:null,machines:[]},soir:{signature:null,heure:null,returns:{}}});
+  // Migration ancien format (single machine) → nouveau (multi-machines)
+  dayData.forEach(d => {
+    if(!d.matin.machines) {
+      d.matin.machines = [];
+      if(d.matin.machine !== null && d.matin.machine !== undefined) {
+        d.matin.machines.push({machineIdx: d.matin.machine, acc: d.matin.acc||0});
+      }
+      delete d.matin.machine; delete d.matin.acc;
+    }
+    if(!d.soir.returns) {
+      d.soir.returns = {};
+      if(d.matin.machines.length > 0 && d.soir.accRetour !== undefined) {
+        const mIdx = d.matin.machines[0] ? d.matin.machines[0].machineIdx : null;
+        if(mIdx !== null) d.soir.returns[mIdx] = {accRetour: d.soir.accRetour||0, motif: d.obs||''};
+      }
+      delete d.soir.accRetour; delete d.obs;
+    }
+  });
+}
+function saveDayData() { try { localStorage.setItem('reg_day', JSON.stringify({date:todayStr(),data:dayData,visaMatin,visaSoir,visaMatinSigner,visaSoirSigner,presentToday,lockedMatinPresents,lockedSoirPresents})); } catch(e){} }
+function isMatinLocked() { return !!visaMatin; }
+function isSoirLocked() { return !!visaSoir; }
+// Vérifie s'il y a des salariés présents ayant signé mais non couverts par le visa
+function hasUncoveredSignatures(period) {
+  if(period==='matin' && !isMatinLocked()) return false;
+  if(period==='soir' && !isSoirLocked()) return false;
+  const lockedList = period==='matin' ? lockedMatinPresents : lockedSoirPresents;
+  for(let i=0; i<team.length; i++) {
+    if(!presentToday.includes(i)) continue;
+    if(lockedList.includes(i)) continue; // déjà couvert
+    const d=dayData[i];
+    if(!d) continue;
+    if(period==='matin' && d.matin && d.matin.signature) return true;
+    if(period==='soir' && d.soir && d.soir.signature) return true;
+  }
+  return false;
+}
+function updateVisaButtonState() {
+  const bm=document.getElementById('visaMatinBtn');
+  const bs=document.getElementById('visaSoirBtn');
+  if(isMatinLocked() && hasUncoveredSignatures('matin')) {
+    bm.innerHTML='⚠️ Re-signer'; bm.classList.remove('signed'); bm.classList.add('needs-resign');
+  } else if(isMatinLocked()) {
+    if(!bm.classList.contains('signed')){ bm.innerHTML=`<img src="${visaMatin}" alt="v">`; bm.classList.add('signed'); }
+    bm.classList.remove('needs-resign');
+  }
+  if(isSoirLocked() && hasUncoveredSignatures('soir')) {
+    bs.innerHTML='⚠️ Re-signer'; bs.classList.remove('signed'); bs.classList.add('needs-resign');
+  } else if(isSoirLocked()) {
+    if(!bs.classList.contains('signed')){ bs.innerHTML=`<img src="${visaSoir}" alt="v">`; bs.classList.add('signed'); }
+    bs.classList.remove('needs-resign');
+  }
+}
+function saveInfoFields() { try { localStorage.setItem('reg_info', JSON.stringify({
+  entreprise:document.getElementById('entreprise').value, refChantier:document.getElementById('refChantier').value,
+  responsable:document.getElementById('responsable').value, adresse:document.getElementById('adresseChantier').value
+})); } catch(e){} }
+function loadInfoFields() { try { const r=localStorage.getItem('reg_info'); if(!r) return; const d=JSON.parse(r);
+  document.getElementById('entreprise').value=d.entreprise||''; document.getElementById('refChantier').value=d.refChantier||'';
+  document.getElementById('responsable').value=d.responsable||''; document.getElementById('adresseChantier').value=d.adresse||'';
+} catch(e){} }
+
+// ===== CATÉGORIES =====
+function loadCategories() { try { const r=localStorage.getItem('reg_categories'); if(r) categories=JSON.parse(r); } catch(e){} }
+function saveCategories() { try { localStorage.setItem('reg_categories', JSON.stringify(categories)); } catch(e){} }
+function addCategory() {
+  const id='cat_'+Date.now();
+  categories.push({id, nom:'', emoji:'📦'});
+  renderConfig();
+  document.getElementById('configPanel').scrollTop=99999;
+}
+function removeCategory() {
+  if(categories.length<=1){ alert('Il faut garder au moins une catégorie.'); return; }
+  const last=categories[categories.length-1];
+  if(confirm('Retirer la catégorie "'+( last.nom||'sans nom')+'" ?')) {
+    // Retirer la catégorie des machines qui l'utilisent
+    machines.forEach(m=>{ if(m.cat===last.id) m.cat=''; });
+    categories.pop();
+    renderConfig();
+  }
+}
+function renderCatList() {
+  const c=document.getElementById('configCatList'); c.innerHTML='';
+  const emojis=['🔧','⚙️','🚛','📦','🔨','🪚','🏗️','🔩','⛏️','🧰','🚜','🚚','🔌','💡','🪜'];
+  categories.forEach((cat,i)=>{
+    const emojiOpts=emojis.map(e=>`<option value="${e}" ${cat.emoji===e?'selected':''}>${e}</option>`).join('');
+    c.innerHTML+=`<div class="config-card">
+      <select data-ci="${i}" data-cf="emoji" style="width:44px;height:36px;font-size:20px;border:1.5px solid var(--border);border-radius:8px;text-align:center;background:white;cursor:pointer;appearance:none;">${emojiOpts}</select>
+      <div class="fields">
+        <input class="name-input" type="text" placeholder="Nom de la catégorie" value="${cat.nom}" data-ci="${i}" data-cf="nom">
+      </div>
+    </div>`;
+  });
+  document.querySelectorAll('#configCatList input,#configCatList select').forEach(inp=>{
+    inp.addEventListener(inp.tagName==='SELECT'?'change':'input', function(){
+      const idx=+this.dataset.ci;
+      categories[idx][this.dataset.cf]=this.value;
+    });
+  });
+}
+function getCatById(id) { return categories.find(c=>c.id===id)||null; }
+function getCatLabel(id) { const c=getCatById(id); return c?c.nom:''; }
+function getCatEmoji(id) { const c=getCatById(id); return c?c.emoji:''; }
+
+// ===== NUMÉROTATION DES PAGES =====
+function loadPageNumber() {
+  try {
+    const r=localStorage.getItem('reg_page');
+    if(r) {
+      const p=JSON.parse(r);
+      if(p.date===todayStr()) { pageNumber=p.num; }
+      else { pageNumber=p.num+1; savePageNumber(); }
+    } else { pageNumber=1; savePageNumber(); }
+  } catch(e){ pageNumber=1; }
+}
+function savePageNumber() { try { localStorage.setItem('reg_page', JSON.stringify({date:todayStr(),num:pageNumber})); } catch(e){} }
+function updatePageNumberDisplay() {
+  const ds=document.getElementById('dateJour').value;
+  const dateStr=ds?new Date(ds+'T00:00:00').toLocaleDateString('fr-FR'):'—';
+  document.getElementById('pageNumberText').textContent='Page n° '+pageNumber+' — '+dateStr;
+}
+
+// ===== RESPONSABLES =====
+function loadResponsables() { try { const r=localStorage.getItem('reg_resp'); if(r) responsables=JSON.parse(r); } catch(e){} }
+function saveResponsables() { try { localStorage.setItem('reg_resp', JSON.stringify(responsables)); } catch(e){} }
+function populateVisaSignerSelect() {
+  const sel=document.getElementById('visaSignerSelect');
+  sel.innerHTML='<option value="">— Choisir le signataire —</option>';
+  if(responsables.chef.nom) sel.innerHTML+=`<option value="chef">Chef d'unité — ${responsables.chef.nom}</option>`;
+  if(responsables.armurier.nom) sel.innerHTML+=`<option value="armurier">Armurier — ${responsables.armurier.nom}</option>`;
+  if(!responsables.chef.nom && !responsables.armurier.nom) sel.innerHTML+='<option value="" disabled>Configurez les responsables d\'abord</option>';
+}
+function populateArmurierSelect() {
+  const sel=document.getElementById('configArmurierSelect');
+  const info=document.getElementById('configArmurierInfo');
+  sel.innerHTML='<option value="">— Choisir l\'Armurier parmi les salariés —</option>';
+  const active=team.map((t,i)=>({...t,idx:i})).filter(t=>t.nom);
+  active.forEach(t=>{
+    sel.innerHTML+=`<option value="${t.idx}">${t.nom}${t.matricule?' — Mat. '+t.matricule:''}</option>`;
+  });
+  // Pré-sélectionner si un armurier est déjà choisi
+  if(responsables.armurier.nom) {
+    const match=active.find(t=>t.nom===responsables.armurier.nom && (!responsables.armurier.matricule || t.matricule===responsables.armurier.matricule));
+    if(match) { sel.value=match.idx; info.textContent='Armurier : '+match.nom+(match.matricule?' (Mat. '+match.matricule+')':''); }
+    else { info.textContent='Armurier actuel : '+responsables.armurier.nom+' (non trouvé dans la liste)'; }
+  } else { info.textContent=''; }
+}
+function onArmurierSelectChange() {
+  const sel=document.getElementById('configArmurierSelect');
+  const info=document.getElementById('configArmurierInfo');
+  const idx=parseInt(sel.value);
+  if(isNaN(idx) || !team[idx]) {
+    responsables.armurier={nom:'',matricule:''};
+    info.textContent='';
+  } else {
+    responsables.armurier={nom:team[idx].nom, matricule:team[idx].matricule||''};
+    info.textContent='Armurier : '+team[idx].nom+(team[idx].matricule?' (Mat. '+team[idx].matricule+')':'');
+  }
+}
+function onVisaSignerChange() {}
+function openVisaSign(period) {
+  const sel=document.getElementById('visaSignerSelect');
+  if(!sel.value) { alert('Veuillez d\'abord choisir qui signe le registre (Chef d\'unité ou Armurier).'); return; }
+  openSignModal(-1, period);
+}
+function getSignerInfo() {
+  const sel=document.getElementById('visaSignerSelect');
+  const role=sel.value; if(!role) return null;
+  const r=responsables[role];
+  const label=role==='chef'?"Chef d'unité":"Armurier";
+  return {role, nom:r.nom, matricule:r.matricule, label};
+}
+
+// ===== PRÉSENTS DU JOUR =====
+function isPresent(i) { return presentToday.includes(i); }
+function getActiveTeam() { return team.map((t,i)=>({...t,idx:i})).filter(t=>t.nom); }
+function getPresentTeam() { return getActiveTeam().filter(t=>presentToday.includes(t.idx)); }
+function openPresenceSelector() {
+  tempPresenceSelection=[...presentToday];
+  document.getElementById('presencePanel').classList.add('active');
+  renderPresenceList();
+}
+function closePresenceSelector() { document.getElementById('presencePanel').classList.remove('active'); }
+function renderPresenceList() {
+  const c=document.getElementById('presenceList'); c.innerHTML='';
+  const active=getActiveTeam();
+  if(!active.length) { c.innerHTML='<div style="text-align:center;padding:20px;color:#999;">Aucun salarié configuré. Allez dans Config.</div>'; return; }
+  active.forEach(t=>{
+    const sel=tempPresenceSelection.includes(t.idx);
+    const card=document.createElement('div');
+    card.className='presence-card'+(sel?' selected':'');
+    card.onclick=()=>{ togglePresence(t.idx); };
+    card.innerHTML=`
+      <div class="presence-check">${sel?'✓':''}</div>
+      <div class="emp-num" style="width:26px;height:26px;font-size:11px;">${t.idx+1}</div>
+      <div class="p-info">
+        <div class="p-name">${t.nom}</div>
+        ${t.matricule?`<div class="p-mat">Mat. ${t.matricule}</div>`:''}
+      </div>`;
+    c.appendChild(card);
+  });
+  updatePresenceCount();
+}
+function togglePresence(idx) {
+  const i=tempPresenceSelection.indexOf(idx);
+  if(i>=0) tempPresenceSelection.splice(i,1); else tempPresenceSelection.push(idx);
+  renderPresenceList();
+}
+function selectAllPresence() { tempPresenceSelection=getActiveTeam().map(t=>t.idx); renderPresenceList(); }
+function selectNonePresence() { tempPresenceSelection=[]; renderPresenceList(); }
+function updatePresenceCount() {
+  const n=tempPresenceSelection.length;
+  document.getElementById('presenceCount').innerHTML=`<span>${n}</span> salarié${n>1?'s':''} sélectionné${n>1?'s':''}`;
+  document.getElementById('btnPresenceSave').disabled=n===0;
+}
+function savePresence() {
+  if(tempPresenceSelection.length===0){ alert('Sélectionnez au moins un salarié.'); return; }
+  presentToday=[...tempPresenceSelection].sort((a,b)=>a-b);
+  saveDayData(); closePresenceSelector();
+  renderEmployees(); updateCounts(); updatePresenceBadge(); updateVisaButtonState();
+}
+function updatePresenceBadge() {
+  const area=document.getElementById('presenceBadgeArea');
+  const badge=document.getElementById('presenceBadge');
+  if(presentToday.length>0) { area.style.display='block'; badge.textContent=presentToday.length+' présent'+(presentToday.length>1?'s':'')+' aujourd\'hui'; }
+  else { area.style.display='none'; }
+}
+
+// ===== MACHINES =====
+function getActiveMachines() { return machines.map((m,i)=>({...m,idx:i})).filter(m=>m.nom); }
+function getMachinesInUse() {
+  const u={};
+  dayData.forEach((d,i)=>{
+    if(d.matin.machines && d.matin.machines.length>0 && d.matin.signature) {
+      d.matin.machines.forEach(m=>{ u[m.machineIdx]=i; });
+    }
+  });
+  return u;
+}
+function getAvailableMachines(empIdx) {
+  const u=getMachinesInUse();
+  const empMachines = dayData[empIdx] && dayData[empIdx].matin.machines ? dayData[empIdx].matin.machines.map(m=>m.machineIdx) : [];
+  // Exclure aussi les machines déjà dans selectedMachines (en cours d'ajout)
+  const selIdxs = selectedMachines.map(m=>m.machineIdx);
+  return getActiveMachines().filter(m => {
+    if(selIdxs.includes(m.idx)) return false; // déjà sélectionnée dans le modal
+    if(!(m.idx in u)) return true; // pas prise par quelqu'un
+    if(empMachines.includes(m.idx)) return true; // prise par ce même employé (édition)
+    return false;
+  });
+}
+function getMachineName(idx) { if(idx===null||idx===undefined||!machines[idx]) return ''; const m=machines[idx]; return m.nom+(m.ref ? ` (${m.ref})` : ''); }
+function getMachineCat(idx) { if(idx===null||idx===undefined||!machines[idx]) return ''; return machines[idx].cat||''; }
+function getMachineCatLabel(cat) { return getCatLabel(cat); }
+function getMachineCatBadge(idx) {
+  const catId=getMachineCat(idx); if(!catId) return '';
+  const cat=getCatById(catId); if(!cat) return '';
+  return `<span class="badge badge-cat" style="background:#dbeafe;color:#1e40af;">${cat.emoji} ${cat.nom}</span>`;
+}
+
+// ===== RENDER =====
+function renderEmployees() {
+  const c = document.getElementById('employeesList');
+  if(team.every(t=>!t.nom)) { c.innerHTML=`<div class="empty-state"><p>Aucun salarié configuré</p><button onclick="openConfig()">Configurer</button></div>`; return; }
+  c.innerHTML='';
+  // Si aucun présent sélectionné, afficher le prompt
+  const activeTeam=getActiveTeam();
+  if(presentToday.length===0 && activeTeam.length>0) {
+    c.innerHTML=`<div class="select-presence-prompt">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2" style="width:32px;height:32px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      <p>Sélectionnez d'abord les salariés présents aujourd'hui pour afficher la feuille d'émargement.</p>
+      <button onclick="openPresenceSelector()">Choisir les présents</button>
+    </div>`;
+    return;
+  }
+  const periodLocked = (currentPeriod==='matin' && isMatinLocked()) || (currentPeriod==='soir' && isSoirLocked());
+  const lockedList = currentPeriod==='matin' ? lockedMatinPresents : lockedSoirPresents;
+  const banner=document.getElementById('lockedBanner');
+  if(periodLocked) {
+    banner.style.display='flex';
+    document.getElementById('lockedText').textContent=currentPeriod==='matin'
+      ? 'Sortie verrouillée — Le responsable a validé les sorties de machines'
+      : 'Retour verrouillé — Le responsable a validé les retours de machines';
+  } else { banner.style.display='none'; }
+
+  let cardIdx=0;
+  for(let i=0;i<team.length;i++){
+    const t=team[i]; if(!t.nom) continue;
+    // Ne montrer que les salariés présents
+    if(!presentToday.includes(i)) continue;
+    const d=dayData[i], sig=d?d[currentPeriod]:{signature:null,heure:null};
+    const isSigned=!!sig.signature;
+    // Un salarié est verrouillé seulement s'il était dans la liste au moment du visa
+    const empLocked = periodLocked && lockedList.includes(i);
+    const mList = d ? (d.matin.machines||[]) : [];
+    const totalAcc = mList.reduce((s,m)=>s+m.acc, 0);
+    const totalRet = d && d.soir.returns ? mList.reduce((s,m)=>s+(d.soir.returns[m.machineIdx]?d.soir.returns[m.machineIdx].accRetour:0),0) : 0;
+    const showInfo = mList.length>0 && d && d.matin.signature && (currentPeriod==='matin'?isSigned:true);
+    const hasEcart = d && d.soir.returns && mList.some(m=>{const r=d.soir.returns[m.machineIdx]; return r&&r.motif;});
+
+    // Badges machines
+    let machBadges='';
+    if(showInfo) {
+      if(mList.length<=2) {
+        machBadges=mList.map(m=>`<span class="badge badge-machine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="1"/></svg>${getMachineName(m.machineIdx)}</span>`).join('');
+      } else {
+        machBadges=`<span class="badge badge-machine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="1"/></svg>${getMachineName(mList[0].machineIdx)} + ${mList.length-1} autre${mList.length-1>1?'s':''}</span>`;
+      }
+    }
+
+    const card=document.createElement('div');
+    card.className='emp-card'+(isSigned?' signed-card':'')+(empLocked?' locked':'');
+    card.style.animationDelay = (cardIdx * 0.04) + 's'; cardIdx++;
+    const clickAction = empLocked ? '' : `onclick="openSignModal(${i},'${currentPeriod}')"`;
+    card.innerHTML=`
+      <div class="emp-num">${i+1}</div>
+      <div class="emp-info">
+        <div class="emp-name">${t.nom}</div>
+        <div class="emp-detail">${t.matricule?'Mat. '+t.matricule:''}${isSigned?' ✓ Signé':''}${empLocked&&isSigned?' 🔒':''}</div>
+        ${showInfo?`<div class="emp-badges">
+          ${machBadges}
+          ${totalAcc>0?`<span class="badge badge-acc">${currentPeriod==='matin'?totalAcc+' sorti'+(totalAcc>1?'s':''):totalRet+' rentr'+(totalRet>1?'és':'é')}</span>`:''}
+          ${currentPeriod==='soir'&&hasEcart?`<span class="badge badge-warning">⚠ Écart</span>`:''}
+        </div>`:''}
+      </div>
+      <div class="emp-sign-area">
+        ${sig.heure?`<span class="emp-time">${sig.heure}</span>`:''}
+        <div class="sign-btn ${isSigned?'signed':''} ${empLocked?'locked-btn':''}" ${clickAction}>
+          ${isSigned?`<img src="${sig.signature}" alt="s">`:(empLocked?'🔒':(currentPeriod==='soir'?'Rendre':'Choisir'))}
+        </div>
+      </div>`;
+    c.appendChild(card);
+  }
+}
+function switchPeriod(p) {
+  if(p==='soir' && !isMatinLocked()) {
+    alert('Le responsable doit d\'abord signer le visa de sortie des machines avant de passer aux retours.');
+    return;
+  }
+  currentPeriod=p;
+  document.querySelectorAll('.period-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.period-tab')[p==='matin'?0:1].classList.add('active');
+  renderEmployees();
+  updateSoirTabState();
+}
+function updateSoirTabState() {
+  const soirTab=document.querySelectorAll('.period-tab')[1];
+  if(!isMatinLocked()) {
+    soirTab.style.opacity='0.4';
+    soirTab.style.cursor='not-allowed';
+  } else {
+    soirTab.style.opacity='1';
+    soirTab.style.cursor='pointer';
+  }
+}
+function updateCounts() {
+  const a=presentToday.filter(i=>team[i]&&team[i].nom).length;
+  const mc=dayData.filter((d,i)=>team[i]&&team[i].nom&&presentToday.includes(i)&&d.matin.signature).length;
+  const sc=dayData.filter((d,i)=>team[i]&&team[i].nom&&presentToday.includes(i)&&d.soir.signature).length;
+  document.getElementById('countMatin').textContent=`${mc} / ${a} signés`;
+  document.getElementById('countSoir').textContent=`${sc} / ${a} signés`;
+}
+
+// ===== CONFIG =====
+function openConfig() { document.getElementById('configPanel').classList.add('active'); renderConfig(); }
+function closeConfig() { document.getElementById('configPanel').classList.remove('active'); }
+function renderConfig() {
+  document.getElementById('configChefUnite').value=responsables.chef.nom;
+  document.getElementById('configChefMat').value=responsables.chef.matricule;
+  document.getElementById('configChefUnite').oninput=function(){responsables.chef.nom=this.value;};
+  document.getElementById('configChefMat').oninput=function(){responsables.chef.matricule=this.value;};
+  // Peupler le select Armurier avec les salariés
+  populateArmurierSelect();
+  // Catégories
+  renderCatList();
+  const ec=document.getElementById('configEmpList'); ec.innerHTML='';
+  team.forEach((t,i)=>{
+    // Migration: ajouter les nouveaux champs si absents
+    if(t.telephone===undefined) t.telephone='';
+    if(t.asvp===undefined) t.asvp=false;
+    ec.innerHTML+=`<div class="config-card"><div class="cnum emp-bg">${i+1}</div><div class="fields">
+    <input class="name-input" type="text" placeholder="Nom et Prénom" value="${t.nom}" data-t="emp" data-i="${i}" data-f="nom">
+    <input class="sub-input" type="text" placeholder="Matricule" value="${t.matricule}" data-t="emp" data-i="${i}" data-f="matricule">
+    <input class="sub-input" type="tel" placeholder="Téléphone" value="${t.telephone}" data-t="emp" data-i="${i}" data-f="telephone" style="font-size:12px;">
+    <label class="asvp-check" style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;padding:2px 0;">
+      <input type="checkbox" ${t.asvp?'checked':''} data-t="emp" data-i="${i}" data-f="asvp" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;"> ASVP
+    </label>
+  </div></div>`;
+  });
+  const mc=document.getElementById('configMachList'); mc.innerHTML='';
+  machines.forEach((m,i)=>{
+    const catOpts=['<option value="">— Catégorie —</option>'].concat(categories.map(c=>`<option value="${c.id}" ${(m.cat||'')===c.id?'selected':''}>${c.emoji} ${c.nom||'(sans nom)'}</option>`)).join('');
+    mc.innerHTML+=`<div class="config-card"><div class="cnum mach-bg">${i+1}</div><div class="fields">
+    <input class="name-input" type="text" placeholder="Nom de la machine" value="${m.nom}" data-t="mach" data-i="${i}" data-f="nom">
+    <input class="sub-input" type="text" placeholder="Réf. / N° série" value="${m.ref}" data-t="mach" data-i="${i}" data-f="ref">
+    <select class="cat-select" data-t="mach" data-i="${i}" data-f="cat">${catOpts}</select>
+  </div></div>`;
+  });
+  document.querySelectorAll('#configEmpList input,#configMachList input,#configMachList select').forEach(inp=>{
+    const evtType = inp.type==='checkbox' ? 'change' : (inp.tagName==='SELECT' ? 'change' : 'input');
+    inp.addEventListener(evtType, function(){ const idx=+this.dataset.i;
+      if(this.dataset.t==='emp') {
+        if(this.dataset.f==='asvp') team[idx].asvp=this.checked;
+        else { team[idx][this.dataset.f]=this.value; populateArmurierSelect(); }
+      }
+      else machines[idx][this.dataset.f]=this.value; });
+  });
+}
+function addItem(t) { if(t==='emp') team.push({nom:'',matricule:'',telephone:'',asvp:false}); else machines.push({nom:'',ref:'',cat:''}); renderConfig(); document.getElementById('configPanel').scrollTop=99999; }
+function removeItem(t) { if(t==='emp'&&team.length>1){if(confirm('Retirer le dernier salarié ?')) team.pop();}
+  else if(t==='mach'&&machines.length>1){if(confirm('Retirer la dernière machine ?')) machines.pop();} renderConfig(); }
+function saveConfig() { saveTeam(); saveMachines(); saveCategories(); saveResponsables(); populateVisaSignerSelect(); syncDayData(); saveDayData(); closeConfig(); renderEmployees(); updateCounts(); }
+
+// ===== SIGNATURE MODAL =====
+let isDrawing=false, sigCtx=null, sigCanvas=null;
+let currentStep = 1;
+
+function onCatChange() {
+  const catSel=document.getElementById('catSelect');
+  const machSub=document.getElementById('machSelectSub');
+  const machSel=document.getElementById('machineSelect');
+  const cat=catSel.value;
+  if(!cat) { machSub.style.display='none'; machSel.innerHTML='<option value="">— Choisir —</option>'; document.getElementById('btnAddMachine').disabled=true; return; }
+  const empIdx=currentSignTarget?currentSignTarget.index:-1;
+  const avail=getAvailableMachines(empIdx).filter(m=> cat==='__none__' ? !(m.cat) : (m.cat||'')===cat);
+  machSel.innerHTML='<option value="">— Choisir —</option>';
+  if(avail.length===0) {
+    machSel.innerHTML='<option value="" disabled>Aucune machine disponible dans cette catégorie</option>';
+    machSub.style.display='block'; document.getElementById('btnAddMachine').disabled=true; return;
+  }
+  avail.forEach(m=>{ const o=document.createElement('option'); o.value=m.idx; o.textContent=m.nom+(m.ref?` (${m.ref})`:''); machSel.appendChild(o); });
+  machSub.style.display='block'; document.getElementById('btnAddMachine').disabled=true;
+}
+function onMachineChange() {
+  const sel=document.getElementById('machineSelect');
+  document.getElementById('btnAddMachine').disabled=!sel.value;
+}
+function changeQty(delta) { accQty=Math.max(0, accQty+delta); document.getElementById('qtyValue').value=accQty; }
+function onQtyInput(el) { let v=parseInt(el.value); if(isNaN(v)||v<0) v=0; accQty=v; el.value=v; }
+// --- Multi-machines matin ---
+function addMachineToList() {
+  const sel=document.getElementById('machineSelect');
+  if(!sel.value) { alert('Veuillez choisir une machine.'); return; }
+  const machIdx=parseInt(sel.value);
+  if(selectedMachines.some(m=>m.machineIdx===machIdx)) { alert('Cette machine est déjà ajoutée.'); return; }
+  selectedMachines.push({machineIdx: machIdx, acc: accQty});
+  // Passer à la vue liste
+  document.getElementById('machSelectArea').style.display='none';
+  document.getElementById('machineListArea').style.display='block';
+  renderMachineList();
+  updateStepIndicator(2);
+}
+function removeMachineFromList(machIdx) {
+  selectedMachines = selectedMachines.filter(m=>m.machineIdx!==machIdx);
+  renderMachineList();
+  if(selectedMachines.length===0) { goToAddAnotherMachine(); updateStepIndicator(1); }
+}
+function renderMachineList() {
+  const c=document.getElementById('machineListContent'); c.innerHTML='';
+  selectedMachines.forEach(m=>{
+    const name=getMachineName(m.machineIdx);
+    const catLabel=getMachineCatLabel(getMachineCat(m.machineIdx));
+    c.innerHTML+=`<div class="machine-list-item">
+      <div class="mli-info">
+        <div class="mli-name">${name}</div>
+        <div class="mli-detail">${catLabel?catLabel+' — ':''}${m.acc} accessoire${m.acc>1?'s':''}</div>
+      </div>
+      <button class="mli-remove" onclick="removeMachineFromList(${m.machineIdx})">✕</button>
+    </div>`;
+  });
+  document.getElementById('btnGoToSign').disabled=selectedMachines.length===0;
+}
+function goToAddAnotherMachine() {
+  document.getElementById('machineListArea').style.display='none';
+  document.getElementById('machSelectArea').style.display='block';
+  // Reset les selects
+  const catSel=document.getElementById('catSelect');
+  catSel.value=''; document.getElementById('machSelectSub').style.display='none';
+  document.getElementById('machineSelect').innerHTML='<option value="">— Choisir —</option>';
+  document.getElementById('btnAddMachine').disabled=true;
+  accQty=0; document.getElementById('qtyValue').value='0';
+  updateStepIndicator(1);
+}
+function goToSignStep() {
+  if(selectedMachines.length===0) { alert('Ajoutez au moins une machine.'); return; }
+  document.getElementById('machineListArea').style.display='none';
+  document.getElementById('sigCanvasArea').style.display='block';
+  document.getElementById('btnClear').style.display='';
+  document.querySelector('.modal-btn.confirm').style.display='';
+  updateStepIndicator(3); initCanvas();
+}
+// --- Multi-retours soir ---
+function renderSoirReturnArea(empIdx) {
+  const d=dayData[empIdx]; if(!d) return;
+  const mList=d.matin.machines||[];
+  const area=document.getElementById('soirReturnArea');
+  if(mList.length===0) { area.style.display='none'; return; }
+  area.style.display='block';
+  let html='<label>Machines à rendre</label>';
+  mList.forEach((m,mi)=>{
+    const name=getMachineName(m.machineIdx);
+    const catLabel=getMachineCatLabel(getMachineCat(m.machineIdx));
+    const ret=d.soir.returns[m.machineIdx]||{};
+    const retQty=ret.accRetour!==undefined?ret.accRetour:m.acc;
+    const motif=ret.motif||'';
+    const hasEcart = m.acc>0 && retQty!==m.acc;
+    html+=`<div class="soir-machine-card" data-midx="${m.machineIdx}">
+      <div class="smc-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="1"/></svg>
+        ${name}${catLabel?' — '+catLabel:''}
+      </div>
+      ${m.acc>0?`<div class="smc-acc-info">${m.acc} accessoire${m.acc>1?'s':''} sorti${m.acc>1?'s':''} ce matin</div>
+      <div class="qty-selector" style="margin-bottom:4px;">
+        <button class="qty-minus" onclick="changeSoirQty(${m.machineIdx},-1)">−</button>
+        <input type="number" class="qty-value" id="soirQty_${m.machineIdx}" value="${retQty}" min="0" inputmode="numeric" onchange="onSoirQtyInput(this,${m.machineIdx})" oninput="onSoirQtyInput(this,${m.machineIdx})">
+        <button class="qty-plus" onclick="changeSoirQty(${m.machineIdx},+1)">+</button>
+      </div>
+      <div class="smc-alert" id="soirAlert_${m.machineIdx}" style="${hasEcart?'':'display:none;'}">
+        <div>${hasEcart?getEcartText(m.acc, retQty):''}</div>
+        <textarea id="soirMotif_${m.machineIdx}" placeholder="Raison de l'écart (obligatoire)...">${motif}</textarea>
+      </div>`:'<div class="smc-acc-info" style="color:#10b981;">Aucun accessoire — restitution simple</div>'}
+    </div>`;
+  });
+  area.innerHTML=html;
+}
+function getEcartText(sorti, rentre) {
+  const diff=sorti-rentre;
+  if(diff>0) return `⚠️ ${diff} accessoire${diff>1?'s':''} manquant${diff>1?'s':''}`;
+  return `⚠️ ${Math.abs(diff)} accessoire${Math.abs(diff)>1?'s':''} en plus`;
+}
+function changeSoirQty(machIdx, delta) {
+  const el=document.getElementById('soirQty_'+machIdx);
+  let v=Math.max(0, parseInt(el.value||0)+delta); el.value=v;
+  checkSoirEcart(machIdx);
+}
+function onSoirQtyInput(el, machIdx) {
+  let v=parseInt(el.value); if(isNaN(v)||v<0) v=0; el.value=v;
+  checkSoirEcart(machIdx);
+}
+function checkSoirEcart(machIdx) {
+  const d=dayData[currentSignTarget.index];
+  const m=d.matin.machines.find(x=>x.machineIdx===machIdx); if(!m) return;
+  const retQty=parseInt(document.getElementById('soirQty_'+machIdx).value)||0;
+  const alert=document.getElementById('soirAlert_'+machIdx);
+  if(m.acc>0 && retQty!==m.acc) {
+    alert.style.display=''; alert.querySelector('div').textContent=getEcartText(m.acc, retQty);
+  } else { alert.style.display='none'; }
+}
+function updateStepIndicator(step) {
+  currentStep=step;
+  for(let i=1;i<=3;i++){
+    const dot=document.getElementById('step'+i+'dot');
+    dot.classList.remove('active','done');
+    if(i<step) dot.classList.add('done'); else if(i===step) dot.classList.add('active');
+  }
+  document.getElementById('step1line').classList.toggle('done',step>=2);
+  document.getElementById('step2line').classList.toggle('done',step>=3);
+}
+
+function initCanvas() {
+  setTimeout(()=>{
+    sigCanvas=document.getElementById('sigCanvas');
+    const r=sigCanvas.getBoundingClientRect();
+    sigCanvas.width=r.width*2; sigCanvas.height=r.height*2;
+    sigCtx=sigCanvas.getContext('2d'); sigCtx.scale(2,2);
+    sigCtx.lineWidth=2.5; sigCtx.lineCap='round'; sigCtx.lineJoin='round'; sigCtx.strokeStyle='#1a1a1a';
+    sigCanvas.addEventListener('touchstart',startDraw,{passive:false});
+    sigCanvas.addEventListener('touchmove',draw,{passive:false});
+    sigCanvas.addEventListener('touchend',endDraw);
+    sigCanvas.addEventListener('mousedown',startDraw);
+    sigCanvas.addEventListener('mousemove',draw);
+    sigCanvas.addEventListener('mouseup',endDraw);
+    sigCanvas.addEventListener('mouseleave',endDraw);
+  },100);
+}
+
+function openSignModal(index, period) {
+  currentSignTarget={index,period}; accQty=0; currentStep=1; selectedMachines=[];
+  const title=document.getElementById('modalTitle'), sub=document.getElementById('modalSubtitle');
+  const machArea=document.getElementById('machSelectArea');
+  const machListArea=document.getElementById('machineListArea');
+  const soirReturnArea=document.getElementById('soirReturnArea');
+  const sigArea=document.getElementById('sigCanvasArea');
+  const stepInd=document.getElementById('stepIndicator');
+  machArea.style.display='none'; machListArea.style.display='none'; soirReturnArea.style.display='none';
+  sigArea.style.display='none'; stepInd.style.display='none';
+  document.getElementById('btnClear').style.display='none';
+  document.querySelector('.modal-btn.confirm').style.display='none';
+  let hasMachineStep=false;
+
+  if(index===-1) {
+    const signer=getSignerInfo();
+    const signerName=signer?signer.nom:'Responsable';
+    const signerLabel=signer?signer.label:'';
+    if(period==='visaMatin') {
+      if(isMatinLocked() && !hasUncoveredSignatures('matin')){ alert('La sortie est déjà verrouillée par le responsable. Tous les salariés sont couverts.'); closeModal(); return; }
+      if(hasUncoveredSignatures('matin')) {
+        title.textContent='⚠️ Re-Visa '+signerLabel+' — SORTIE'; sub.textContent=signerName+' — Nouveaux salariés à couvrir';
+      } else {
+        title.textContent='Visa '+signerLabel+' — SORTIE'; sub.textContent=signerName+' — Validation des sorties de machines';
+      }
+    } else {
+      if(isSoirLocked() && !hasUncoveredSignatures('soir')){ alert('Le retour est déjà verrouillé par le responsable. Tous les salariés sont couverts.'); closeModal(); return; }
+      if(hasUncoveredSignatures('soir')) {
+        title.textContent='⚠️ Re-Visa '+signerLabel+' — RETOUR'; sub.textContent=signerName+' — Nouveaux salariés à couvrir';
+      } else {
+        title.textContent='Visa '+signerLabel+' — RETOUR'; sub.textContent=signerName+' — Validation des retours de machines';
+      }
+    }
+    sigArea.style.display='block';
+    document.getElementById('btnClear').style.display='';
+    document.querySelector('.modal-btn.confirm').style.display='';
+  } else {
+    if(period==='matin' && isMatinLocked() && lockedMatinPresents.includes(index)){ alert('La sortie est verrouillée pour ce salarié.'); return; }
+    if(period==='soir' && isSoirLocked() && lockedSoirPresents.includes(index)){ alert('Le retour est verrouillé pour ce salarié.'); return; }
+    title.textContent=team[index].nom||`Salarié n°${index+1}`;
+    if(period==='matin') {
+      sub.textContent='Sortie des machines';
+      const avail=getAvailableMachines(index);
+      if(avail.length>0 || (dayData[index] && dayData[index].matin.machines.length>0)) {
+        hasMachineStep=true; stepInd.style.display='flex'; updateStepIndicator(1);
+        // Si déjà signé (modification), charger les machines existantes
+        const existing=dayData[index]?dayData[index].matin.machines:[];
+        if(existing.length>0) {
+          selectedMachines=JSON.parse(JSON.stringify(existing));
+          machListArea.style.display='block'; machArea.style.display='none';
+          renderMachineList(); updateStepIndicator(2);
+        } else {
+          machArea.style.display='block';
+          resetMachineSelects();
+        }
+      } else {
+        sigArea.style.display='block';
+        document.getElementById('btnClear').style.display='';
+        document.querySelector('.modal-btn.confirm').style.display='';
+      }
+    } else {
+      sub.textContent='Retour des machines';
+      const d=dayData[index];
+      if(d && d.matin.machines && d.matin.machines.length>0) {
+        renderSoirReturnArea(index);
+      }
+      sigArea.style.display='block';
+      document.getElementById('btnClear').style.display='';
+      document.querySelector('.modal-btn.confirm').style.display='';
+    }
+  }
+  document.getElementById('sigModal').classList.add('active');
+  if(!hasMachineStep || period!=='matin') { initCanvas(); }
+}
+function resetMachineSelects() {
+  const catSel=document.getElementById('catSelect');
+  catSel.innerHTML='<option value="">— Choisir une catégorie —</option>';
+  categories.forEach(c=>{ catSel.innerHTML+=`<option value="${c.id}">${c.emoji} ${c.nom||'(sans nom)'}</option>`; });
+  catSel.innerHTML+='<option value="__none__">📦 Sans catégorie</option>';
+  catSel.value=''; document.getElementById('machSelectSub').style.display='none';
+  document.getElementById('machineSelect').innerHTML='<option value="">— Choisir —</option>';
+  document.getElementById('btnAddMachine').disabled=true;
+  accQty=0; document.getElementById('qtyValue').value='0';
+}
+function getPos(e){const r=sigCanvas.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}
+function startDraw(e){e.preventDefault();isDrawing=true;const p=getPos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);}
+function draw(e){if(!isDrawing)return;e.preventDefault();const p=getPos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();}
+function endDraw(){isDrawing=false;}
+function clearCanvas(){if(sigCtx&&sigCanvas) sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);}
+function closeModal(){document.getElementById('sigModal').classList.remove('active');currentSignTarget=null;}
+
+function confirmSignature() {
+  if(!sigCanvas||!currentSignTarget) return;
+  const img=sigCtx.getImageData(0,0,sigCanvas.width,sigCanvas.height);
+  if(!img.data.some((v,i)=>i%4===3&&v>0)){alert('Veuillez signer.');return;}
+  const url=sigCanvas.toDataURL('image/png');
+  const{index,period}=currentSignTarget;
+
+  if(index===-1){
+    const signer=getSignerInfo();
+    if(period==='visaMatin'){
+      visaMatin=url; visaMatinSigner=signer;
+      // Ne verrouiller que les présents ayant effectivement signé le matin
+      lockedMatinPresents=presentToday.filter(i => dayData[i] && dayData[i].matin.signature);
+      const b=document.getElementById('visaMatinBtn');
+      b.innerHTML=`<img src="${url}" alt="v">`; b.classList.add('signed');
+      if(signer){ const info=document.getElementById('visaMatinSignedBy'); info.textContent=signer.label+' — '+signer.nom; info.style.display='block'; }
+    } else {
+      visaSoir=url; visaSoirSigner=signer;
+      // Ne verrouiller que les présents ayant effectivement signé le soir
+      lockedSoirPresents=presentToday.filter(i => dayData[i] && dayData[i].soir.signature);
+      const b=document.getElementById('visaSoirBtn');
+      b.innerHTML=`<img src="${url}" alt="v">`; b.classList.add('signed');
+      if(signer){ const info=document.getElementById('visaSoirSignedBy'); info.textContent=signer.label+' — '+signer.nom; info.style.display='block'; }
+    }
+  } else if(period==='matin'){
+    // Sauver les multi-machines
+    if(selectedMachines.length>0) {
+      dayData[index].matin.machines=[...selectedMachines];
+    }
+    dayData[index].matin.signature=url; dayData[index].matin.heure=nowTime();
+  } else {
+    // SOIR — vérifier les écarts par machine
+    const d=dayData[index];
+    const mList=d.matin.machines||[];
+    const returns={};
+    let hasError=false;
+    mList.forEach(m=>{
+      const qtyEl=document.getElementById('soirQty_'+m.machineIdx);
+      const retQty=qtyEl?parseInt(qtyEl.value)||0:0;
+      const motifEl=document.getElementById('soirMotif_'+m.machineIdx);
+      const motif=motifEl?motifEl.value.trim():'';
+      if(m.acc>0 && retQty!==m.acc && !motif) {
+        hasError=true;
+        alert('Écart détecté pour '+getMachineName(m.machineIdx)+' ! Veuillez renseigner le motif.');
+      }
+      returns[m.machineIdx]={accRetour: retQty, motif: motif};
+    });
+    if(hasError) return;
+    dayData[index].soir.returns=returns;
+    dayData[index].soir.signature=url; dayData[index].soir.heure=nowTime();
+  }
+  closeModal(); renderEmployees(); updateCounts(); saveDayData(); updateSoirTabState(); updateVisaButtonState();
+}
+
+// ===== RESET =====
+function resetSignatures(){
+  // Bloquer si le matin ou le soir est verrouillé par le responsable
+  if(isMatinLocked() || isSoirLocked()) {
+    let msg='Impossible d\'effacer :\n';
+    if(isMatinLocked()) msg+='• Le visa SORTIE a été signé par le responsable.\n';
+    if(isSoirLocked()) msg+='• Le visa RETOUR a été signé par le responsable.\n';
+    msg+='\nUtilisez « Remise à zéro complète » dans la Configuration si le registre est finalisé.';
+    alert(msg);
+    return;
+  }
+  if(!confirm('Effacer toutes les signatures du jour ?')) return;
+  dayData.forEach(d=>{d.matin={signature:null,heure:null,machines:[]};d.soir={signature:null,heure:null,returns:{}};});
+  visaMatin=null; visaSoir=null; visaMatinSigner=null; visaSoirSigner=null;
+  const bm=document.getElementById('visaMatinBtn'); bm.innerHTML='Signer'; bm.classList.remove('signed');
+  const bs=document.getElementById('visaSoirBtn'); bs.innerHTML='Signer'; bs.classList.remove('signed');
+  document.getElementById('visaMatinSignedBy').style.display='none';
+  document.getElementById('visaSoirSignedBy').style.display='none';
+  saveDayData(); renderEmployees(); updateCounts(); updateSoirTabState();
+}
+
+// ===== REMISE À ZÉRO COMPLÈTE =====
+function fullReset(){
+  const msg='⚠ REMISE À ZÉRO COMPLÈTE ⚠\n\n'+
+    'Cette action va :\n'+
+    '• Effacer TOUTES les signatures (y compris les visas verrouillés)\n'+
+    '• Réinitialiser la sélection des présents\n'+
+    '• Remettre le compteur de page à zéro\n\n'+
+    'Assurez-vous d\'avoir généré le PDF avant de continuer.\n\n'+
+    'Êtes-vous sûr ?';
+  if(!confirm(msg)) return;
+  if(!confirm('Dernière confirmation : tout sera effacé définitivement.')) return;
+  dayData.forEach(d=>{d.matin={signature:null,heure:null,machines:[]};d.soir={signature:null,heure:null,returns:{}};});
+  visaMatin=null; visaSoir=null; visaMatinSigner=null; visaSoirSigner=null;
+  presentToday=[]; lockedMatinPresents=[]; lockedSoirPresents=[];
+  pageNumber=0; savePageNumber();
+  const bm=document.getElementById('visaMatinBtn'); bm.innerHTML='Signer'; bm.classList.remove('signed');
+  const bs=document.getElementById('visaSoirBtn'); bs.innerHTML='Signer'; bs.classList.remove('signed');
+  document.getElementById('visaMatinSignedBy').style.display='none';
+  document.getElementById('visaSoirSignedBy').style.display='none';
+  saveDayData(); renderEmployees(); updateCounts(); updatePresenceBadge(); updatePageNumberDisplay(); updateSoirTabState();
+  closeConfig();
+  alert('Remise à zéro effectuée. Le prochain jour commencera à la page n° 1.');
+}
+
+// ===== PDF =====
+function generatePDF(){
+  // Vérifier que les deux visas sont signés
+  if(!visaMatin || !visaSoir) {
+    let msg='Impossible de générer le PDF :\n';
+    if(!visaMatin) msg+='• Le visa SORTIE n\'a pas été signé par le responsable.\n';
+    if(!visaSoir) msg+='• Le visa RETOUR n\'a pas été signé par le responsable.\n';
+    msg+='\nLes deux visas du responsable sont obligatoires avant de finaliser le registre.';
+    alert(msg);
+    return;
+  }
+  // Vérifier que tous les salariés signés sont couverts par le visa
+  if(hasUncoveredSignatures('matin') || hasUncoveredSignatures('soir')) {
+    let msg='Impossible de générer le PDF :\n';
+    if(hasUncoveredSignatures('matin')) msg+='• Des salariés ont signé après le visa SORTIE. Le responsable doit re-signer.\n';
+    if(hasUncoveredSignatures('soir')) msg+='• Des salariés ont signé après le visa RETOUR. Le responsable doit re-signer.\n';
+    alert(msg);
+    return;
+  }
+  // Ne garder que les présents du jour
+  const at=team.map((t,i)=>({...t,idx:i})).filter(t=>t.nom && presentToday.includes(t.idx));
+  if(!at.length){alert('Aucun salarié présent sélectionné.');return;}
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const pw=297,ph=210,ml=10,uw=pw-2*ml;
+  const ent=document.getElementById('entreprise').value||'—';
+  const dv=document.getElementById('dateJour').value;
+  const ds=dv?new Date(dv+'T00:00:00').toLocaleDateString('fr-FR'):'—';
+  const rc=document.getElementById('refChantier').value||'—';
+  const rp=document.getElementById('responsable').value||'—';
+  const ad=document.getElementById('adresseChantier').value||'—';
+  const N=at.length;
+
+  doc.setFillColor(26,58,92);doc.rect(ml,6,uw,11,'F');
+  doc.setTextColor(255);doc.setFontSize(13);doc.setFont('helvetica','bold');
+  doc.text("REGISTRE D'ÉMARGEMENT QUOTIDIEN",pw/2,13,{align:'center'});
+  // Numéro de page en haut à droite
+  doc.setFontSize(8);doc.setFont('helvetica','bold');
+  doc.text('Page n° '+pageNumber,pw-ml-1,13,{align:'right'});
+
+  let y=20;
+  doc.setDrawColor(26,58,92);doc.setLineWidth(0.4);doc.rect(ml,y,uw,16);
+  doc.setTextColor(0);doc.setFontSize(7.5);
+  doc.setFont('helvetica','bold');doc.text('Entreprise :',ml+2,y+5);doc.setFont('helvetica','normal');doc.text(ent,ml+22,y+5);
+  doc.setFont('helvetica','bold');doc.text('Date :',ml+uw*0.35,y+5);doc.setFont('helvetica','normal');doc.text(ds,ml+uw*0.35+11,y+5);
+  doc.setFont('helvetica','bold');doc.text('Responsable :',ml+uw*0.62,y+5);doc.setFont('helvetica','normal');doc.text(rp,ml+uw*0.62+25,y+5);
+  doc.setFont('helvetica','bold');doc.text('Réf. chantier :',ml+2,y+11);doc.setFont('helvetica','normal');doc.text(rc,ml+26,y+11);
+  doc.setFont('helvetica','bold');doc.text('Adresse :',ml+uw*0.35,y+11);doc.setFont('helvetica','normal');doc.text(ad,ml+uw*0.35+16,y+11);
+
+  y=40;
+  const cW=[7,14,36,26,12,11,26,12,11,26];cW.push(uw-cW.reduce((a,b)=>a+b,0));
+  const cX=[ml];for(let i=0;i<cW.length;i++) cX.push(cX[i]+cW[i]);
+  const hH=8,sH=8;
+  const rH=Math.min(11,Math.max(7,(ph-y-28-hH-sH)/N));
+  const tH=hH+sH+N*rH;
+  const mid=(a,b)=>(a+b)/2;
+
+  doc.setFillColor(26,58,92); doc.rect(cX[0],y,cW[0]+cW[1]+cW[2]+cW[3],hH+sH,'F');
+  doc.setFillColor(194,120,35); doc.rect(cX[4],y,cW[4]+cW[5]+cW[6],hH,'F');
+  doc.setFillColor(37,99,235); doc.rect(cX[7],y,cW[7]+cW[8]+cW[9],hH,'F');
+  doc.setFillColor(26,58,92); doc.rect(cX[10],y,cW[10],hH+sH,'F');
+
+  doc.setTextColor(255);doc.setFontSize(6);doc.setFont('helvetica','bold');
+  const hYc=y+(hH+sH)/2+1;
+  doc.text('N°',mid(cX[0],cX[1]),hYc,{align:'center'});
+  doc.text('Mat.',mid(cX[1],cX[2]),hYc,{align:'center'});
+  doc.text('Nom et Prénom',mid(cX[2],cX[3]),hYc,{align:'center'});
+  doc.text('Machine',mid(cX[3],cX[4]),hYc,{align:'center'});
+  doc.text('Obs.',mid(cX[10],cX[11]),hYc,{align:'center'});
+
+  doc.setFontSize(8);
+  doc.text('SORTIE',mid(cX[4],cX[7]),y+hH/2+1.5,{align:'center'});
+  doc.text('RETOUR',mid(cX[7],cX[10]),y+hH/2+1.5,{align:'center'});
+
+  const y2=y+hH;
+  doc.setFillColor(254,243,199); doc.rect(cX[4],y2,cW[4]+cW[5]+cW[6],sH,'F');
+  doc.setFillColor(219,234,254); doc.rect(cX[7],y2,cW[7]+cW[8]+cW[9],sH,'F');
+
+  doc.setFontSize(5);doc.setFont('helvetica','bold');
+  const sYc=y2+sH/2;
+  doc.setTextColor(146,64,14);
+  doc.text('Acc.',mid(cX[4],cX[5]),sYc-0.5,{align:'center'});doc.text('sorti',mid(cX[4],cX[5]),sYc+2.5,{align:'center'});
+  doc.text('Heure',mid(cX[5],cX[6]),sYc-0.5,{align:'center'});doc.text('arr.',mid(cX[5],cX[6]),sYc+2.5,{align:'center'});
+  doc.text('Émargement',mid(cX[6],cX[7]),sYc+1,{align:'center'});
+  doc.setTextColor(30,64,175);
+  doc.text('Acc.',mid(cX[7],cX[8]),sYc-0.5,{align:'center'});doc.text('rentré',mid(cX[7],cX[8]),sYc+2.5,{align:'center'});
+  doc.text('Heure',mid(cX[8],cX[9]),sYc-0.5,{align:'center'});doc.text('dép.',mid(cX[8],cX[9]),sYc+2.5,{align:'center'});
+  doc.text('Émargement',mid(cX[9],cX[10]),sYc+1,{align:'center'});
+
+  const dY=y2+sH;
+  at.forEach((t,row)=>{
+    const ry=dY+row*rH;
+    if(row%2===0){doc.setFillColor(237,242,247);doc.rect(cX[0],ry,uw,rH,'F');}
+    doc.setFillColor(255,251,235);doc.rect(cX[4],ry,cW[4]+cW[5]+cW[6],rH,'F');
+    doc.setFillColor(239,246,255);doc.rect(cX[7],ry,cW[7]+cW[8]+cW[9],rH,'F');
+    if(row%2===0){
+      doc.setFillColor(248,245,230);doc.rect(cX[4],ry,cW[4]+cW[5]+cW[6],rH,'F');
+      doc.setFillColor(235,241,250);doc.rect(cX[7],ry,cW[7]+cW[8]+cW[9],rH,'F');
+    }
+    doc.setTextColor(26,58,92);doc.setFontSize(7);doc.setFont('helvetica','bold');
+    doc.text(String(row+1),mid(cX[0],cX[1]),ry+rH/2+1,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setTextColor(0);doc.setFontSize(6);
+    if(t.matricule) doc.text(t.matricule,mid(cX[1],cX[2]),ry+rH/2+1,{align:'center'});
+    doc.setFontSize(6.5);doc.text(t.nom,cX[2]+1,ry+rH/2+1);
+    const d=dayData[t.idx];
+    if(d){
+      // Multi-machines empilées
+      const mList=d.matin.machines||[];
+      if(mList.length>0) {
+        const lineH=Math.min(3.5, (rH-1)/mList.length);
+        const startY=ry+(rH-mList.length*lineH)/2+lineH*0.7;
+        mList.forEach((m,mi)=>{
+          const name=getMachineName(m.machineIdx);
+          const catE=getCatEmoji(getMachineCat(m.machineIdx));
+          doc.setFontSize(Math.min(5, 4.5));doc.setTextColor(30,64,175);
+          const label=(catE?catE+' ':'')+name+(m.acc>0?' ('+m.acc+' acc)':'');
+          doc.text(label,cX[3]+0.5,startY+mi*lineH,{maxWidth:cW[3]-1});
+        });
+        doc.setTextColor(0);
+      }
+      // Total accessoires matin
+      const totalAcc=mList.reduce((s,m)=>s+m.acc,0);
+      if(totalAcc>0){doc.setFontSize(6);doc.setTextColor(146,64,14);doc.text(String(totalAcc),mid(cX[4],cX[5]),ry+rH/2+1,{align:'center'});doc.setTextColor(0);}
+      doc.setFontSize(5.5);doc.setTextColor(0);
+      if(d.matin.heure) doc.text(d.matin.heure,mid(cX[5],cX[6]),ry+rH/2+1,{align:'center'});
+      if(d.matin.signature) try{doc.addImage(d.matin.signature,'PNG',cX[6]+0.3,ry+0.3,cW[6]-0.6,rH-0.6);}catch(e){}
+      // Total accessoires retour
+      const totalRet=mList.reduce((s,m)=>{const r=d.soir.returns?d.soir.returns[m.machineIdx]:null; return s+(r?r.accRetour:0);},0);
+      if(totalRet>0){doc.setFontSize(6);doc.setTextColor(30,64,175);doc.text(String(totalRet),mid(cX[7],cX[8]),ry+rH/2+1,{align:'center'});doc.setTextColor(0);}
+      doc.setFontSize(5.5);doc.setTextColor(0);
+      if(d.soir.heure) doc.text(d.soir.heure,mid(cX[8],cX[9]),ry+rH/2+1,{align:'center'});
+      if(d.soir.signature) try{doc.addImage(d.soir.signature,'PNG',cX[9]+0.3,ry+0.3,cW[9]-0.6,rH-0.6);}catch(e){}
+      // Observations (motifs d'écart concaténés)
+      const allMotifs=mList.map(m=>{const r=d.soir.returns?d.soir.returns[m.machineIdx]:null; return r&&r.motif?getMachineName(m.machineIdx).split(' ')[0]+': '+r.motif:'';}).filter(Boolean).join(' | ');
+      if(allMotifs){
+        doc.setFontSize(4);doc.setTextColor(220,38,38);doc.setFont('helvetica','bold');
+        const obsLines=doc.splitTextToSize(allMotifs, cW[10]-2);
+        const maxLines=Math.floor(rH/2.5); const lines=obsLines.slice(0,maxLines);
+        const obsY=ry+(rH-(lines.length*2.5))/2+2;
+        lines.forEach((line,li)=>{doc.text(line,cX[10]+1,obsY+li*2.5);});
+        doc.setFont('helvetica','normal');doc.setTextColor(0);
+      }
+    }
+  });
+
+  doc.setDrawColor(26,58,92);doc.setLineWidth(0.3);doc.rect(cX[0],y,uw,tH);
+  doc.line(cX[4],y+hH,cX[10],y+hH);
+  doc.setLineWidth(0.5);doc.line(cX[0],dY,cX[11],dY);
+  doc.setLineWidth(0.15);for(let i=1;i<N;i++) doc.line(cX[0],dY+i*rH,cX[11],dY+i*rH);
+  doc.setLineWidth(0.3);
+  [1,2,3,4,10].forEach(i=>doc.line(cX[i],y,cX[i],y+tH));
+  doc.setLineWidth(1.0);doc.setDrawColor(26,58,92);
+  doc.line(cX[7],y,cX[7],y+tH);
+  doc.setLineWidth(0.2);doc.setDrawColor(180,160,120);
+  [5,6].forEach(i=>doc.line(cX[i],y+hH,cX[i],y+tH));
+  doc.setDrawColor(120,160,200);
+  [8,9].forEach(i=>doc.line(cX[i],y+hH,cX[i],y+tH));
+  doc.setDrawColor(26,58,92);
+
+  const fY=y+tH+3;
+  doc.setFontSize(5);doc.setTextColor(136);doc.setFont('helvetica','italic');
+  doc.text('Ce registre doit être conservé pendant 5 ans minimum.',ml,fY);
+
+  const vmLabel=visaMatinSigner ? visaMatinSigner.label+' — '+visaMatinSigner.nom : 'Visa Matin';
+  doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(194,120,35);
+  doc.text(vmLabel+' (sortie) :',ml,fY+6);
+  doc.setDrawColor(194,120,35);doc.setLineWidth(0.3);doc.setLineDashPattern([2,1],0);doc.rect(ml+38,fY+1,50,12);doc.setLineDashPattern([],0);
+  if(visaMatin) try{doc.addImage(visaMatin,'PNG',ml+38.3,fY+1.3,49.4,11.4);}catch(e){}
+
+  const vsLabel=visaSoirSigner ? visaSoirSigner.label+' — '+visaSoirSigner.nom : 'Visa Soir';
+  doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(37,99,235);
+  doc.text(vsLabel+' (retour) :',pw/2+10,fY+6);
+  doc.setDrawColor(37,99,235);doc.setLineWidth(0.3);doc.setLineDashPattern([2,1],0);doc.rect(pw/2+46,fY+1,50,12);doc.setLineDashPattern([],0);
+  if(visaSoir) try{doc.addImage(visaSoir,'PNG',pw/2+46.3,fY+1.3,49.4,11.4);}catch(e){}
+
+  doc.setDrawColor(26,58,92);
+  doc.setLineWidth(0.2);doc.line(ml,ph-7,pw-ml,ph-7);
+  doc.setFontSize(4.5);doc.setTextColor(170);doc.setFont('helvetica','normal');
+  doc.text("Registre d'émargement quotidien",ml,ph-4);doc.text('Page n° '+pageNumber+' — '+ds,pw-ml,ph-4,{align:'right'});
+
+  doc.save(`registre_${dv||'jour'}.pdf`);
+}
+
+// ===== EXPORT / IMPORT CONFIG =====
+function exportConfig() {
+  // Sauvegarder d'abord la config actuelle
+  saveConfig();
+  const config = {
+    _type: 'registre_emargement_config',
+    _version: 2,
+    _date: new Date().toISOString(),
+    team: team,
+    machines: machines,
+    categories: categories,
+    responsables: responsables,
+    infoFields: {
+      entreprise: document.getElementById('entreprise').value,
+      refChantier: document.getElementById('refChantier').value,
+      responsable: document.getElementById('responsable').value,
+      adresseChantier: document.getElementById('adresseChantier').value
+    }
+  };
+  const json = JSON.stringify(config, null, 2);
+  const blob = new Blob([json], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'config_emargement_' + todayStr() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  alert('Configuration exportée avec succès !');
+}
+
+function importConfig(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const config = JSON.parse(e.target.result);
+      if (config._type !== 'registre_emargement_config') {
+        alert('Ce fichier n\'est pas une configuration valide.');
+        return;
+      }
+      if (!confirm('Importer cette configuration ?\n\nCela remplacera :\n• ' + (config.team ? config.team.filter(t=>t.nom).length : 0) + ' salariés\n• ' + (config.machines ? config.machines.filter(m=>m.nom).length : 0) + ' machines\n• ' + (config.categories ? config.categories.length : 0) + ' catégories\n\nLes données du jour (signatures, présences) ne seront pas affectées.')) {
+        return;
+      }
+      // Importer les données
+      if (config.team) { team = config.team; saveTeam(); }
+      if (config.machines) { machines = config.machines; saveMachines(); }
+      if (config.categories) { categories = config.categories; saveCategories(); }
+      if (config.responsables) { responsables = config.responsables; saveResponsables(); }
+      if (config.infoFields) {
+        const inf = config.infoFields;
+        if (inf.entreprise) document.getElementById('entreprise').value = inf.entreprise;
+        if (inf.refChantier) document.getElementById('refChantier').value = inf.refChantier;
+        if (inf.responsable) document.getElementById('responsable').value = inf.responsable;
+        if (inf.adresseChantier) document.getElementById('adresseChantier').value = inf.adresseChantier;
+        saveInfoFields();
+      }
+      // Re-sync et re-render
+      syncDayData(); saveDayData();
+      renderConfig();
+      populateVisaSignerSelect();
+      renderEmployees(); updateCounts(); updatePresenceBadge();
+      alert('Configuration importée avec succès !\n\n' + team.filter(t=>t.nom).length + ' salariés, ' + machines.filter(m=>m.nom).length + ' machines, ' + categories.length + ' catégories.');
+    } catch(err) {
+      alert('Erreur lors de la lecture du fichier : ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  // Reset le input pour pouvoir réimporter le même fichier
+  event.target.value = '';
+}
+
+// ===== PWA : Service Worker Registration =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW enregistré:', reg.scope))
+      .catch(err => console.log('SW erreur:', err));
+  });
+}
+
+// ===== PWA : Install Prompt =====
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallBanner();
+});
+
+function showInstallBanner() {
+  if (document.getElementById('pwa-install-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'pwa-install-banner';
+  banner.style.cssText = 'position:fixed;bottom:80px;left:12px;right:12px;background:linear-gradient(135deg,#1e293b,#0f172a);color:white;padding:14px 16px;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.3);z-index:9999;display:flex;align-items:center;gap:12px;animation:slideUp 0.4s ease;';
+  banner.innerHTML = `
+    <div style="flex:1">
+      <div style="font-weight:700;font-size:13px;margin-bottom:2px;">📱 Installer l'application</div>
+      <div style="font-size:11px;color:#94a3b8;">Accédez au registre depuis votre écran d'accueil</div>
+    </div>
+    <button onclick="installPWA()" style="background:#3b82f6;color:white;border:none;padding:8px 16px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;">Installer</button>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#64748b;font-size:18px;cursor:pointer;padding:4px;">✕</button>
+  `;
+  document.body.appendChild(banner);
+}
+
+function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(result => {
+    if (result.outcome === 'accepted') {
+      console.log('PWA installée');
+    }
+    deferredPrompt = null;
+    const b = document.getElementById('pwa-install-banner');
+    if (b) b.remove();
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  console.log('PWA installée avec succès');
+  const b = document.getElementById('pwa-install-banner');
+  if (b) b.remove();
+});
+
+// Animation CSS pour le bandeau
+const pwaStyle = document.createElement('style');
+pwaStyle.textContent = '@keyframes slideUp{from{transform:translateY(100px);opacity:0}to{transform:translateY(0);opacity:1}}';
+document.head.appendChild(pwaStyle);
+
+init();
+</script>
+</body>
+</html>
